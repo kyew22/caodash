@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAO Dashboard — SysManager</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    :root {
+      --blue: #0066b3;
+      --blue-dark: #004e8a;
+      --blue-light: #e8f3fc;
+      --pink: #d83d96;
+      --pink-light: #fce8f3;
+      --violet: #8b5cf6;
+      --teal: #0891b2;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --white: #ffffff;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
+      --shadow: 0 4px 6px rgba(0, 0, 0, .07), 0 2px 4px rgba(0, 0, 0, .06);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, .1), 0 4px 6px rgba(0, 0, 0, .07);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 60%, #0080d6 100%);
+      color: var(--white);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      gap: 16px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -1px;
+      color: #fff;
+    }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+    }
+
+    .header-sub {
+      font-size: 11px;
+      opacity: .7;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    .header-year {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, .15);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .header-year select {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+      padding-right: 4px;
+    }
+
+    .header-year select option {
+      background: var(--blue-dark);
+      color: white;
+    }
+
+    .last-update {
+      font-size: 11px;
+      opacity: .65;
+      white-space: nowrap;
+    }
+
+    /* ── NAV TABS ── */
+    .nav-wrap {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      position: sticky;
+      top: 60px;
+      z-index: 90;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+
+    .nav-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 16px;
+      min-width: max-content;
+    }
+
+    .nav-tab {
+      padding: 14px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-500);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all .2s;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-tab:hover {
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+
+    .nav-tab.active {
+      color: var(--blue);
+      border-color: var(--blue);
+      background: transparent;
+    }
+
+    .nav-icon {
+      font-size: 15px;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: none;
+    }
+
+    .main.active {
+      display: block;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--blue-dark);
+      letter-spacing: -.4px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title .badge {
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 20px;
+      letter-spacing: .3px;
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 20px;
+    }
+
+    /* ── KPI GRID ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--blue);
+      transition: box-shadow .2s;
+    }
+
+    .kpi-card:hover {
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-card.pink {
+      border-color: var(--pink);
+    }
+
+    .kpi-card.teal {
+      border-color: var(--teal);
+    }
+
+    .kpi-card.green {
+      border-color: var(--green);
+    }
+
+    .kpi-card.amber {
+      border-color: var(--amber);
+    }
+
+    .kpi-card.violet {
+      border-color: var(--violet);
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--gray-500);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .kpi-delta {
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .kpi-delta.up {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .kpi-delta.down {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .kpi-delta.neutral {
+      background: var(--gray-100);
+      color: var(--gray-500);
+    }
+
+    /* ── CHART GRID ── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .chart-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-grid.triple {
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    }
+
+    /* ── CHART CARD ── */
+    .chart-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+
+    .chart-card:hover {
+      box-shadow: var(--shadow);
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 0;
+      gap: 8px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .chart-subtitle {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 1px;
+    }
+
+    .chart-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn-edit {
+      background: var(--blue-light);
+      color: var(--blue);
+      border: 1px solid #bee3f8;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+
+    .btn-edit:hover {
+      background: var(--blue);
+      color: white;
+    }
+
+    .chart-body {
+      padding: 10px 16px 14px;
+      position: relative;
+      min-height: 200px;
+    }
+
+    canvas {
+      max-height: 240px;
+    }
+
+    /* ── EDIT MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--white);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 88vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+      animation: modalIn .2s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .modal-head {
+      background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-head h3 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, .35);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-foot {
+      padding: 14px 20px;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-dark);
+    }
+
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-200);
+    }
+
+    /* ── DATA TABLE ── */
+    .data-table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .data-table th {
+      background: var(--blue);
+      color: white;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+    }
+
+    .data-table tr:nth-child(even) td {
+      background: var(--gray-50);
+    }
+
+    .data-table tr:hover td {
+      background: var(--blue-light);
+    }
+
+    .data-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--gray-100);
+      white-space: nowrap;
+    }
+
+    .data-table td input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      color: var(--gray-900);
+      text-align: right;
+      outline: none;
+      min-width: 60px;
+      font-family: inherit;
+    }
+
+    .data-table td input:focus {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 0 0 2px var(--blue);
+    }
+
+    .data-table .col-mes {
+      font-weight: 700;
+      color: var(--blue-dark);
+      text-align: left;
+    }
+
+    .data-table .col-num {
+      text-align: right;
+    }
+
+    .computed {
+      color: var(--gray-500);
+      font-style: italic;
+    }
+
+    /* ── STACKED BAR / PIE container ── */
+    .chart-body canvas {
+      width: 100% !important;
+    }
+
+    /* ── TABLE SECTION ── */
+    .table-section {
+      margin-bottom: 24px;
+    }
+
+    .table-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .table-body {
+      padding: 0;
+      overflow-x: auto;
+    }
+
+    /* ── MIGRATION CARDS ── */
+    .migration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .mig-card {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      border-top: 3px solid var(--blue);
+    }
+
+    .mig-card.pink {
+      border-color: var(--pink);
+    }
+
+    .mig-card.teal {
+      border-color: var(--teal);
+    }
+
+    .mig-card.violet {
+      border-color: var(--violet);
+    }
+
+    .mig-card.green {
+      border-color: var(--green);
+    }
+
+    .mig-count {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--gray-900);
+    }
+
+    .mig-label {
+      font-size: 12px;
+      color: var(--gray-500);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* ── HUMOR ── */
+    .humor-bar {
+      display: flex;
+      height: 24px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 6px 0 2px;
+      gap: 1px;
+    }
+
+    .humor-seg {
+      transition: width .4s ease;
+    }
+
+    .humor-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .humor-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--gray-700);
+    }
+
+    .humor-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .header-inner {
+        gap: 8px;
+      }
+
+      .header-title {
+        font-size: 14px;
+      }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--gray-100);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--gray-300);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--blue);
+    }
+
+    .tip {
+      background: var(--blue-light);
+      border-left: 3px solid var(--blue);
+      padding: 8px 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: var(--blue-dark);
+      margin-bottom: 16px;
+    }
+
+    .year-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .year-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 2px solid var(--gray-200);
+      background: white;
+      cursor: pointer;
+      color: var(--gray-700);
+      transition: all .15s;
+    }
+
+    .year-btn.active {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+
+    .year-btn:hover:not(.active) {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="header-logo">SYS</div>
+        <div>
+          <div class="header-title">CAO Dashboard</div>
+          <div class="header-sub">Diretoria Corporativa · SysManager</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div class="header-year">
+          📅
+          <select id="globalYear" onchange="filterYear(this.value)">
+            <option value="all">Todos</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+          </select>
+        </div>
+        <div class="last-update" id="lastUpdate"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="nav-wrap">
+    <div class="nav-inner">
+      <div class="nav-tab active" onclick="showTab('dp')" id="tab-dp"><span class="nav-icon">👥</span>Departamento
+        Pessoal</div>
+      <div class="nav-tab" onclick="showTab('dho')" id="tab-dho"><span class="nav-icon">💬</span>DHO</div>
+      <div class="nav-tab" onclick="showTab('rs')" id="tab-rs"><span class="nav-icon">🎯</span>R&S</div>
+      <div class="nav-tab" onclick="showTab('td')" id="tab-td"><span class="nav-icon">📚</span>T&D</div>
+      <div class="nav-tab" onclick="showTab('supr')" id="tab-supr"><span class="nav-icon">💼</span>Suprimentos</div>
+      <div class="nav-tab" onclick="showTab('ti')" id="tab-ti"><span class="nav-icon">🖥️</span>TI</div>
+      <div class="nav-tab" onclick="showTab('migra')" id="tab-migra"><span class="nav-icon">🔄</span>Migrações</div>
+    </div>
+  </nav>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Editar Dados</h3>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveModal()">💾 Salvar e Atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── DP ──────────────── -->
+  <div class="main active" id="page-dp">
+    <div class="section-title">👥 Departamento Pessoal <span class="badge">DP</span></div>
+    <div class="section-sub">Indicadores de efetivo, contratações, demissões, rotatividade, horas extras e folha de
+      pagamento.</div>
+
+    <div class="kpi-grid" id="dp-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Contratações x Demissões</div>
+            <div class="chart-subtitle">Mensal — ano selecionado</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_contrat')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartContratDemit"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Efetivo Total</div>
+            <div class="chart-subtitle">Evolução mensal</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_efetivo')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartEfetivo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Efetivo por Tipo de Contrato</div>
+            <div class="chart-subtitle">CLT · PJ · COOP · SCP</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_efetivo_tipo')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartEfTipo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Rotatividade (%)</div>
+            <div class="chart-subtitle">Mensal vs Meta</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_rotat')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartRotat"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Horas Extras</div>
+            <div class="chart-subtitle">HE mensal</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_he')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartHE"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Folha de Pagamento — Total</div>
+            <div class="chart-subtitle">Custo (mi R$) vs Efetivo/100</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_fp')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartFP"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Folha de Pagamento — Diretoria Corp.</div>
+            <div class="chart-subtitle">Custo (R$ mil) vs Efetivo</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dp_fp_cao')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartFPCAO"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Acumulado de Contratações no Ano</div>
+            <div class="chart-subtitle">Crescimento acumulado</div>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartAcum"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── DHO ──────────────── -->
+  <div class="main" id="page-dho">
+    <div class="section-title">💬 DHO — Desenvolvimento Humano <span class="badge">DHO</span></div>
+    <div class="section-sub">Humor dos colaboradores e quantidade de feedbacks registrados no Feedz.</div>
+
+    <div class="kpi-grid" id="dho-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Humor dos Colaboradores</div>
+            <div class="chart-subtitle" id="humor-subtitle">Distribuição mensal — 2026</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dho_humor')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartHumor"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Feedbacks Registrados</div>
+            <div class="chart-subtitle">Quantidade por mês</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('dho_feedback')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartFeedback"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── RS ──────────────── -->
+  <div class="main" id="page-rs">
+    <div class="section-title">🎯 Recrutamento & Seleção <span class="badge">R&S</span></div>
+    <div class="section-sub">Tempo médio de preenchimento, vagas trabalhadas, desconto gerado e realocações.</div>
+
+    <div class="kpi-grid" id="rs-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Tempo Médio para Fechar Vagas</div>
+            <div class="chart-subtitle">Dias · vs qtde vagas</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('rs_tempo')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartRSTempo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Vagas Abertas × Fechadas</div>
+            <div class="chart-subtitle">Saldo de vagas mensais</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('rs_vagas')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartRSVagas"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Desconto R&S vs Meta 15%</div>
+            <div class="chart-subtitle">Economia gerada por vaga fechada</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('rs_desconto')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartRSDesconto"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Realocações Internas</div>
+            <div class="chart-subtitle">Entrada · Realocados · Desligados</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('rs_realoc')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartRSRealoc"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── TD ──────────────── -->
+  <div class="main" id="page-td">
+    <div class="section-title">📚 Treinamento & Desenvolvimento <span class="badge">T&D</span></div>
+    <div class="section-sub">Cumprimento de metas de treinamento — SysAcademy / Feedz.</div>
+
+    <div class="kpi-grid" id="td-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Cumprimento de Meta de Treinamento</div>
+            <div class="chart-subtitle">Cumpriu · Parcial · Não Registrou</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('td_meta')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDMeta"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">% de Cumprimento</div>
+            <div class="chart-subtitle">Evolução mensal</div>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDPct"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── SUPR ──────────────── -->
+  <div class="main" id="page-supr">
+    <div class="section-title">💼 Suprimentos & Contratos <span class="badge">SUPR</span></div>
+    <div class="section-sub">Despesas de viagem e valor de contratos vigentes por diretoria.</div>
+
+    <div class="kpi-grid" id="supr-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Despesas de Viagem por Diretoria</div>
+            <div class="chart-subtitle">R$ mensal</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('supr_desp')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartDespViagem"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Contratos Vigentes — Total</div>
+            <div class="chart-subtitle">R$/mês por diretoria</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('supr_contratos')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartContratos"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── TI ──────────────── -->
+  <div class="main" id="page-ti">
+    <div class="section-title">🖥️ TI — Suporte <span class="badge">TI</span></div>
+    <div class="section-sub">Tickets de suporte abertos por mês.</div>
+
+    <div class="kpi-grid" id="ti-kpis"></div>
+
+    <div class="chart-grid chart-grid single">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Tickets de Suporte</div>
+            <div class="chart-subtitle">Quantidade por mês — histórico completo</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('ti_suporte')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTISuport" style="max-height:300px;"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────── MIGRA ──────────────── -->
+  <div class="main" id="page-migra">
+    <div class="section-title">🔄 Admissões & Migrações <span class="badge" id="migra-badge">2026</span></div>
+    <div class="section-sub" id="migra-sub">Migrações entre tipos de contratação e novas admissões em 2026.</div>
+
+    <div class="migration-grid" id="migrationCards"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Admissões por Tipo de Contrato</div>
+            <div class="chart-subtitle">Distribuição</div>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartMigPie"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Tipo de Movimentação</div>
+            <div class="chart-subtitle">Nova Contratação · Substituição · Migração</div>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartMigTipo"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-card">
+        <div class="table-head">
+          <div><strong style="font-size:13px;" id="migra-table-title">Lista de Admissões/Migrações 2026</strong>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">Total: <span id="migTotal">—</span>
+              profissionais</div>
+          </div>
+          <input type="text" placeholder="🔍  Buscar..." id="migSearch" oninput="filterMig()"
+            style="padding:6px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;outline:none;width:200px;">
+        </div>
+        <div class="table-body" style="max-height:400px; overflow-y:auto;">
+          <table class="data-table" id="migTable">
+            <thead>
+              <tr>
+                <th>Colaborador</th>
+                <th>Tipo</th>
+                <th>Cargo</th>
+                <th>Admissão</th>
+                <th>Status</th>
+                <th>Movimentação</th>
+              </tr>
+            </thead>
+            <tbody id="migBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════
+    //  DATA STORE
+    // ═══════════════════════════════════════════════
+    const DATA = {
+      contrat: [
+        { mes: 'Jan', ano: 2023, v: 45 }, { mes: 'Fev', ano: 2023, v: 4 }, { mes: 'Mar', ano: 2023, v: 13 }, { mes: 'Abr', ano: 2023, v: 27 }, { mes: 'Mai', ano: 2023, v: 10 }, { mes: 'Jun', ano: 2023, v: 9 }, { mes: 'Jul', ano: 2023, v: 18 }, { mes: 'Ago', ano: 2023, v: 18 }, { mes: 'Set', ano: 2023, v: 17 }, { mes: 'Out', ano: 2023, v: 26 }, { mes: 'Nov', ano: 2023, v: 17 }, { mes: 'Dez', ano: 2023, v: 14 },
+        { mes: 'Jan', ano: 2024, v: 11 }, { mes: 'Fev', ano: 2024, v: 16 }, { mes: 'Mar', ano: 2024, v: 4 }, { mes: 'Abr', ano: 2024, v: 19 }, { mes: 'Mai', ano: 2024, v: 10 }, { mes: 'Jun', ano: 2024, v: 7 }, { mes: 'Jul', ano: 2024, v: 14 }, { mes: 'Ago', ano: 2024, v: 8 }, { mes: 'Set', ano: 2024, v: 11 }, { mes: 'Out', ano: 2024, v: 18 }, { mes: 'Nov', ano: 2024, v: 8 }, { mes: 'Dez', ano: 2024, v: 6 },
+        { mes: 'Jan', ano: 2025, v: 22 }, { mes: 'Fev', ano: 2025, v: 19 }, { mes: 'Mar', ano: 2025, v: 21 }, { mes: 'Abr', ano: 2025, v: 21 }, { mes: 'Mai', ano: 2025, v: 15 }, { mes: 'Jun', ano: 2025, v: 7 }, { mes: 'Jul', ano: 2025, v: 38 }, { mes: 'Ago', ano: 2025, v: 25 }, { mes: 'Set', ano: 2025, v: 22 }, { mes: 'Out', ano: 2025, v: 35 }, { mes: 'Nov', ano: 2025, v: 16 }, { mes: 'Dez', ano: 2025, v: 12 },
+        { mes: 'Jan', ano: 2026, v: 23 }, { mes: 'Fev', ano: 2026, v: 16 }, { mes: 'Mar', ano: 2026, v: 17 }
+      ],
+      demit: [
+        { mes: 'Jan', ano: 2023, v: 11 }, { mes: 'Fev', ano: 2023, v: 13 }, { mes: 'Mar', ano: 2023, v: 4 }, { mes: 'Abr', ano: 2023, v: 13 }, { mes: 'Mai', ano: 2023, v: 9 }, { mes: 'Jun', ano: 2023, v: 3 }, { mes: 'Jul', ano: 2023, v: 3 }, { mes: 'Ago', ano: 2023, v: 5 }, { mes: 'Set', ano: 2023, v: 7 }, { mes: 'Out', ano: 2023, v: 7 }, { mes: 'Nov', ano: 2023, v: 5 }, { mes: 'Dez', ano: 2023, v: 7 },
+        { mes: 'Jan', ano: 2024, v: 9 }, { mes: 'Fev', ano: 2024, v: 8 }, { mes: 'Mar', ano: 2024, v: 10 }, { mes: 'Abr', ano: 2024, v: 7 }, { mes: 'Mai', ano: 2024, v: 10 }, { mes: 'Jun', ano: 2024, v: 9 }, { mes: 'Jul', ano: 2024, v: 18 }, { mes: 'Ago', ano: 2024, v: 11 }, { mes: 'Set', ano: 2024, v: 9 }, { mes: 'Out', ano: 2024, v: 9 }, { mes: 'Nov', ano: 2024, v: 9 }, { mes: 'Dez', ano: 2024, v: 16 },
+        { mes: 'Jan', ano: 2025, v: 12 }, { mes: 'Fev', ano: 2025, v: 8 }, { mes: 'Mar', ano: 2025, v: 11 }, { mes: 'Abr', ano: 2025, v: 10 }, { mes: 'Mai', ano: 2025, v: 18 }, { mes: 'Jun', ano: 2025, v: 8 }, { mes: 'Jul', ano: 2025, v: 12 }, { mes: 'Ago', ano: 2025, v: 17 }, { mes: 'Set', ano: 2025, v: 9 }, { mes: 'Out', ano: 2025, v: 17 }, { mes: 'Nov', ano: 2025, v: 14 }, { mes: 'Dez', ano: 2025, v: 10 },
+        { mes: 'Jan', ano: 2026, v: 17 }, { mes: 'Fev', ano: 2026, v: 18 }, { mes: 'Mar', ano: 2026, v: 8 }
+      ],
+      efetivo: [
+        { mes: 'Jan', ano: 2023, v: 206 }, { mes: 'Fev', ano: 2023, v: 240 }, { mes: 'Mar', ano: 2023, v: 231 }, { mes: 'Abr', ano: 2023, v: 240 }, { mes: 'Mai', ano: 2023, v: 254 }, { mes: 'Jun', ano: 2023, v: 255 }, { mes: 'Jul', ano: 2023, v: 261 }, { mes: 'Ago', ano: 2023, v: 276 }, { mes: 'Set', ano: 2023, v: 289 }, { mes: 'Out', ano: 2023, v: 299 }, { mes: 'Nov', ano: 2023, v: 318 }, { mes: 'Dez', ano: 2023, v: 330 },
+        { mes: 'Jan', ano: 2024, v: 337 }, { mes: 'Fev', ano: 2024, v: 339 }, { mes: 'Mar', ano: 2024, v: 347 }, { mes: 'Abr', ano: 2024, v: 341 }, { mes: 'Mai', ano: 2024, v: 353 }, { mes: 'Jun', ano: 2024, v: 353 }, { mes: 'Jul', ano: 2024, v: 351 }, { mes: 'Ago', ano: 2024, v: 347 }, { mes: 'Set', ano: 2024, v: 344 }, { mes: 'Out', ano: 2024, v: 346 }, { mes: 'Nov', ano: 2024, v: 355 }, { mes: 'Dez', ano: 2024, v: 354 },
+        { mes: 'Jan', ano: 2025, v: 344 }, { mes: 'Fev', ano: 2025, v: 354 }, { mes: 'Mar', ano: 2025, v: 365 }, { mes: 'Abr', ano: 2025, v: 387 }, { mes: 'Mai', ano: 2025, v: 385 }, { mes: 'Jun', ano: 2025, v: 384 }, { mes: 'Jul', ano: 2025, v: 410 }, { mes: 'Ago', ano: 2025, v: 418 }, { mes: 'Set', ano: 2025, v: 429 }, { mes: 'Out', ano: 2025, v: 434 }, { mes: 'Nov', ano: 2025, v: 448 }, { mes: 'Dez', ano: 2025, v: 458 },
+        { mes: 'Jan', ano: 2026, v: 461 }, { mes: 'Fev', ano: 2026, v: 463 }, { mes: 'Mar', ano: 2026, v: 461 }
+      ],
+      efTipo: [
+        { mes: 'Jan', ano: 2025, clt: 183, pj: 153, coop: 1, scp: 19 },
+        { mes: 'Fev', ano: 2025, clt: 183, pj: 158, coop: 1, scp: 19 },
+        { mes: 'Mar', ano: 2025, clt: 185, pj: 161, coop: 21, scp: 19 },
+        { mes: 'Abr', ano: 2025, clt: 185, pj: 166, coop: 27, scp: 20 },
+        { mes: 'Mai', ano: 2025, clt: 184, pj: 171, coop: 33, scp: 21 },
+        { mes: 'Jun', ano: 2025, clt: 178, pj: 166, coop: 32, scp: 20 },
+        { mes: 'Jul', ano: 2025, clt: 182, pj: 190, coop: 34, scp: 19 },
+        { mes: 'Ago', ano: 2025, clt: 183, pj: 198, coop: 36, scp: 19 },
+        { mes: 'Set', ano: 2025, clt: 178, pj: 202, coop: 48, scp: 21 },
+        { mes: 'Out', ano: 2025, clt: 188, pj: 197, coop: 60, scp: 20 },
+        { mes: 'Nov', ano: 2025, clt: 183, pj: 200, coop: 65, scp: 20 },
+        { mes: 'Dez', ano: 2025, clt: 178, pj: 202, coop: 73, scp: 22 },
+        { mes: 'Jan', ano: 2026, clt: 172, pj: 209, coop: 76, scp: 22 }
+      ],
+      rotat: [
+        { mes: 'Jan', ano: 2023, v: 1, meta: 10 }, { mes: 'Fev', ano: 2023, v: 4, meta: 10 }, { mes: 'Mar', ano: 2023, v: 4, meta: 10 }, { mes: 'Abr', ano: 2023, v: 5, meta: 10 }, { mes: 'Mai', ano: 2023, v: 6, meta: 10 }, { mes: 'Jun', ano: 2023, v: 6, meta: 10 }, { mes: 'Jul', ano: 2023, v: 7, meta: 10 }, { mes: 'Ago', ano: 2023, v: 8, meta: 10 }, { mes: 'Set', ano: 2023, v: 9, meta: 10 }, { mes: 'Out', ano: 2023, v: 10, meta: 10 }, { mes: 'Nov', ano: 2023, v: 12, meta: 10 }, { mes: 'Dez', ano: 2023, v: 12, meta: 10 },
+        { mes: 'Jan', ano: 2024, v: 2, meta: 10 }, { mes: 'Fev', ano: 2024, v: 4, meta: 10 }, { mes: 'Mar', ano: 2024, v: 5, meta: 10 }, { mes: 'Abr', ano: 2024, v: 6, meta: 10 }, { mes: 'Mai', ano: 2024, v: 6, meta: 10 }, { mes: 'Jun', ano: 2024, v: 8, meta: 10 }, { mes: 'Jul', ano: 2024, v: 10, meta: 10 }, { mes: 'Ago', ano: 2024, v: 12, meta: 10 }, { mes: 'Set', ano: 2024, v: 13, meta: 10 }, { mes: 'Out', ano: 2024, v: 16, meta: 10 }, { mes: 'Nov', ano: 2024, v: 17, meta: 10 }, { mes: 'Dez', ano: 2024, v: 19, meta: 10 },
+        { mes: 'Jan', ano: 2025, v: 1, meta: 10 }, { mes: 'Fev', ano: 2025, v: 2, meta: 10 }, { mes: 'Mar', ano: 2025, v: 4, meta: 10 }, { mes: 'Abr', ano: 2025, v: 4, meta: 10 }, { mes: 'Mai', ano: 2025, v: 6, meta: 10 }, { mes: 'Jun', ano: 2025, v: 7, meta: 10 }, { mes: 'Jul', ano: 2025, v: 8, meta: 10 }, { mes: 'Ago', ano: 2025, v: 10, meta: 10 }, { mes: 'Set', ano: 2025, v: 11, meta: 10 }, { mes: 'Out', ano: 2025, v: 13, meta: 10 }, { mes: 'Nov', ano: 2025, v: 14, meta: 10 }, { mes: 'Dez', ano: 2025, v: 15, meta: 10 },
+        { mes: 'Jan', ano: 2026, v: 1, meta: 10 }, { mes: 'Fev', ano: 2026, v: 3, meta: 10 }, { mes: 'Mar', ano: 2026, v: 3, meta: 10 }
+      ],
+      he: [
+        { mes: 'Jan', ano: 2024, v: 768 }, { mes: 'Fev', ano: 2024, v: 735 }, { mes: 'Mar', ano: 2024, v: 746 }, { mes: 'Abr', ano: 2024, v: 670 }, { mes: 'Mai', ano: 2024, v: 788 }, { mes: 'Jun', ano: 2024, v: 676 }, { mes: 'Jul', ano: 2024, v: 579 }, { mes: 'Ago', ano: 2024, v: 621 }, { mes: 'Set', ano: 2024, v: 647 }, { mes: 'Out', ano: 2024, v: 709 }, { mes: 'Nov', ano: 2024, v: 844 }, { mes: 'Dez', ano: 2024, v: 957 },
+        { mes: 'Jan', ano: 2025, v: 866 }, { mes: 'Fev', ano: 2025, v: 736 }, { mes: 'Mar', ano: 2025, v: 995 }, { mes: 'Abr', ano: 2025, v: 900 }, { mes: 'Mai', ano: 2025, v: 850 }, { mes: 'Jun', ano: 2025, v: 618 }, { mes: 'Jul', ano: 2025, v: 592 }, { mes: 'Ago', ano: 2025, v: 803 }, { mes: 'Set', ano: 2025, v: 725 }, { mes: 'Out', ano: 2025, v: 957 }, { mes: 'Nov', ano: 2025, v: 1021 }, { mes: 'Dez', ano: 2025, v: 700 },
+        { mes: 'Jan', ano: 2026, v: 604 }, { mes: 'Fev', ano: 2026, v: 527 }, { mes: 'Mar', ano: 2026, v: 647 }
+      ],
+      fp: [
+        { mes: 'Jan', ano: 2024, custo: 3.5, ef: 261 }, { mes: 'Fev', ano: 2024, custo: 3.5, ef: 268 }, { mes: 'Mar', ano: 2024, custo: 3.6, ef: 294 }, { mes: 'Abr', ano: 2024, custo: 3.8, ef: 314 }, { mes: 'Mai', ano: 2024, custo: 3.8, ef: 320 }, { mes: 'Jun', ano: 2024, custo: 3.9, ef: 326 }, { mes: 'Jul', ano: 2024, custo: 4.0, ef: 336 }, { mes: 'Ago', ano: 2024, custo: 4.2, ef: 344 }, { mes: 'Set', ano: 2024, custo: 4.3, ef: 347 }, { mes: 'Out', ano: 2024, custo: 4.4, ef: 355 }, { mes: 'Nov', ano: 2024, custo: 4.5, ef: 353 }, { mes: 'Dez', ano: 2024, custo: 4.5, ef: 347 },
+        { mes: 'Jan', ano: 2025, custo: 4.6, ef: 350 }, { mes: 'Fev', ano: 2025, custo: 4.8, ef: 359 }, { mes: 'Mar', ano: 2025, custo: 4.6, ef: 369 }, { mes: 'Abr', ano: 2025, custo: 5.0, ef: 381 }, { mes: 'Mai', ano: 2025, custo: 5.3, ef: 394 }, { mes: 'Jun', ano: 2025, custo: 5.1, ef: 384 }, { mes: 'Jul', ano: 2025, custo: 5.73, ef: 413 }, { mes: 'Ago', ano: 2025, custo: 5.48, ef: 421 }, { mes: 'Set', ano: 2025, custo: 5.63, ef: 432 }, { mes: 'Out', ano: 2025, custo: 5.94, ef: 457 }, { mes: 'Nov', ano: 2025, custo: 6.02, ef: 457 }, { mes: 'Dez', ano: 2025, custo: 5.84, ef: 451 },
+        { mes: 'Jan', ano: 2026, custo: 6.1, ef: 467 }, { mes: 'Fev', ano: 2026, custo: 6.1, ef: 462 }, { mes: 'Mar', ano: 2026, custo: 6.2, ef: 462 }
+      ],
+      fp_cao: [
+        { mes: 'Jan', ano: 2024, custo: 208, ef: 27 }, { mes: 'Fev', ano: 2024, custo: 208, ef: 27 }, { mes: 'Mar', ano: 2024, custo: 209, ef: 27 }, { mes: 'Abr', ano: 2024, custo: 209, ef: 27 }, { mes: 'Mai', ano: 2024, custo: 211, ef: 27 }, { mes: 'Jun', ano: 2024, custo: 211, ef: 27 }, { mes: 'Jul', ano: 2024, custo: 211, ef: 27 }, { mes: 'Ago', ano: 2024, custo: 220, ef: 29 }, { mes: 'Set', ano: 2024, custo: 207, ef: 29 }, { mes: 'Out', ano: 2024, custo: 217, ef: 28 }, { mes: 'Nov', ano: 2024, custo: 217, ef: 28 }, { mes: 'Dez', ano: 2024, custo: 207, ef: 27 },
+        { mes: 'Jan', ano: 2025, custo: 197, ef: 25 }, { mes: 'Fev', ano: 2025, custo: 197, ef: 25 }, { mes: 'Mar', ano: 2025, custo: 203, ef: 26 }, { mes: 'Abr', ano: 2025, custo: 203, ef: 26 }, { mes: 'Mai', ano: 2025, custo: 203, ef: 27 }, { mes: 'Jun', ano: 2025, custo: 204, ef: 27 }, { mes: 'Jul', ano: 2025, custo: 208, ef: 28 }, { mes: 'Ago', ano: 2025, custo: 208, ef: 28 }, { mes: 'Set', ano: 2025, custo: 208, ef: 28 }, { mes: 'Out', ano: 2025, custo: 255, ef: 31 }, { mes: 'Nov', ano: 2025, custo: 256, ef: 31 }, { mes: 'Dez', ano: 2025, custo: 242, ef: 30 },
+        { mes: 'Jan', ano: 2026, custo: 287, ef: 35 }, { mes: 'Fev', ano: 2026, custo: 287, ef: 35 }, { mes: 'Mar', ano: 2026, custo: 312, ef: 37 }
+      ],
+      humor: [
+        { mes: 'Dez', ano: 2023, mf: 53, f: 36, n: 10, t: 1, mt: 0 },
+        { mes: 'Dez', ano: 2024, mf: 56, f: 32, n: 11, t: 1, mt: 0 },
+        { mes: 'Jan', ano: 2025, mf: 42, f: 22, n: 6, t: 0, mt: 0 }, { mes: 'Fev', ano: 2025, mf: 45, f: 21, n: 5, t: 0, mt: 0 }, { mes: 'Mar', ano: 2025, mf: 46, f: 21, n: 6, t: 0, mt: 0 }, { mes: 'Abr', ano: 2025, mf: 44, f: 20, n: 6, t: 0, mt: 0 }, { mes: 'Mai', ano: 2025, mf: 49, f: 27, n: 6, t: 0, mt: 0 }, { mes: 'Jun', ano: 2025, mf: 43, f: 22, n: 4, t: 0, mt: 0 }, { mes: 'Jul', ano: 2025, mf: 52, f: 31, n: 6, t: 0, mt: 0 }, { mes: 'Ago', ano: 2025, mf: 48, f: 26, n: 5, t: 0, mt: 0 }, { mes: 'Set', ano: 2025, mf: 46, f: 26, n: 7, t: 0, mt: 0 }, { mes: 'Out', ano: 2025, mf: 49, f: 25, n: 5, t: 0, mt: 0 }, { mes: 'Nov', ano: 2025, mf: 43, f: 22, n: 8, t: 0, mt: 0 }, { mes: 'Dez', ano: 2025, mf: 56, f: 28, n: 5, t: 0, mt: 0 },
+        { mes: 'Jan', ano: 2026, mf: 52, f: 31, n: 8, t: 1, mt: 0 }, { mes: 'Fev', ano: 2026, mf: 50, f: 30, n: 8, t: 0, mt: 0 }, { mes: 'Mar', ano: 2026, mf: 53, f: 31, n: 9, t: 0, mt: 0 }
+      ],
+      feedback: [
+        { mes: 'Jan', ano: 2024, v: 99 }, { mes: 'Fev', ano: 2024, v: 99 }, { mes: 'Mar', ano: 2024, v: 77 }, { mes: 'Abr', ano: 2024, v: 43 }, { mes: 'Mai', ano: 2024, v: 38 }, { mes: 'Jun', ano: 2024, v: 45 }, { mes: 'Jul', ano: 2024, v: 33 }, { mes: 'Ago', ano: 2024, v: 85 }, { mes: 'Set', ano: 2024, v: 101 }, { mes: 'Out', ano: 2024, v: 93 }, { mes: 'Nov', ano: 2024, v: 53 }, { mes: 'Dez', ano: 2024, v: 55 },
+        { mes: 'Jan', ano: 2025, v: 22 }, { mes: 'Fev', ano: 2025, v: 33 }, { mes: 'Mar', ano: 2025, v: 40 }, { mes: 'Abr', ano: 2025, v: 22 }, { mes: 'Mai', ano: 2025, v: 56 }, { mes: 'Jun', ano: 2025, v: 28 }, { mes: 'Jul', ano: 2025, v: 29 }, { mes: 'Ago', ano: 2025, v: 30 }, { mes: 'Set', ano: 2025, v: 25 }, { mes: 'Out', ano: 2025, v: 33 }, { mes: 'Nov', ano: 2025, v: 22 }, { mes: 'Dez', ano: 2025, v: 20 },
+        { mes: 'Jan', ano: 2026, v: 31 }, { mes: 'Fev', ano: 2026, v: 35 }, { mes: 'Mar', ano: 2026, v: 40 }
+      ],
+      rs_tempo: [
+        { mes: 'Jan', ano: 2025, vagas: 19, dias: 4.66 }, { mes: 'Fev', ano: 2025, vagas: 16, dias: 3.97 }, { mes: 'Mar', ano: 2025, vagas: 16, dias: 2.66 }, { mes: 'Abr', ano: 2025, vagas: 10, dias: 1.76 }, { mes: 'Mai', ano: 2025, vagas: 9, dias: 1.35 }, { mes: 'Jun', ano: 2025, vagas: 24, dias: 3.56 }, { mes: 'Jul', ano: 2025, vagas: 12, dias: 2.73 }, { mes: 'Ago', ano: 2025, vagas: 2, dias: 2.00 }, { mes: 'Set', ano: 2025, vagas: 21, dias: 2.84 }, { mes: 'Out', ano: 2025, vagas: 33, dias: 4.50 }, { mes: 'Nov', ano: 2025, vagas: 6, dias: 1.38 }, { mes: 'Dez', ano: 2025, vagas: 12, dias: 2.10 },
+        { mes: 'Jan', ano: 2026, vagas: 11, dias: 2.80 }, { mes: 'Fev', ano: 2026, vagas: 22, dias: 3.60 }, { mes: 'Mar', ano: 2026, vagas: 16, dias: 3.10 }
+      ],
+      rs_vagas: [
+        { mes: 'Jan', ano: 2025, ab: 34, fc: 19 }, { mes: 'Fev', ano: 2025, ab: 24, fc: 16 }, { mes: 'Mar', ano: 2025, ab: 19, fc: 16 }, { mes: 'Abr', ano: 2025, ab: 19, fc: 10 }, { mes: 'Mai', ano: 2025, ab: 15, fc: 9 }, { mes: 'Jun', ano: 2025, ab: 31, fc: 24 }, { mes: 'Jul', ano: 2025, ab: 32, fc: 12 }, { mes: 'Ago', ano: 2025, ab: 24, fc: 2 }, { mes: 'Set', ano: 2025, ab: 24, fc: 21 }, { mes: 'Out', ano: 2025, ab: 23, fc: 33 }, { mes: 'Nov', ano: 2025, ab: 18, fc: 6 }, { mes: 'Dez', ano: 2025, ab: 21, fc: 12 },
+        { mes: 'Jan', ano: 2026, ab: 32, fc: 11 }, { mes: 'Fev', ano: 2026, ab: 14, fc: 22 }, { mes: 'Mar', ano: 2026, ab: 30, fc: 16 }
+      ],
+      rs_desconto: [
+        { mes: 'Jan', ano: 2025, desconto: 0.108 }, { mes: 'Fev', ano: 2025, desconto: 0.044 }, { mes: 'Mar', ano: 2025, desconto: 0.089 }, { mes: 'Abr', ano: 2025, desconto: 0.185 }, { mes: 'Mai', ano: 2025, desconto: 0.169 }, { mes: 'Jun', ano: 2025, desconto: 0.134 }, { mes: 'Jul', ano: 2025, desconto: 0.096 }, { mes: 'Ago', ano: 2025, desconto: 0.122 }, { mes: 'Set', ano: 2025, desconto: 0.114 }, { mes: 'Out', ano: 2025, desconto: 0.150 }, { mes: 'Nov', ano: 2025, desconto: 0.140 }, { mes: 'Dez', ano: 2025, desconto: 0.150 },
+        { mes: 'Jan', ano: 2026, desconto: 0.130 }, { mes: 'Fev', ano: 2026, desconto: 0.110 }, { mes: 'Mar', ano: 2026, desconto: 0.210 }
+      ],
+      rs_realoc: [
+        { mes: 'Jan', ano: 2025, ent: 5, real: 1, desl: 3 }, { mes: 'Fev', ano: 2025, ent: 1, real: 1, desl: 0 }, { mes: 'Mar', ano: 2025, ent: 0, real: 0, desl: 0 }, { mes: 'Abr', ano: 2025, ent: 1, real: 1, desl: 1 }, { mes: 'Mai', ano: 2025, ent: 12, real: 2, desl: 2 }, { mes: 'Jun', ano: 2025, ent: 8, real: 2, desl: 6 }, { mes: 'Jul', ano: 2025, ent: 12, real: 9, desl: 8 }, { mes: 'Ago', ano: 2025, ent: 1, real: 1, desl: 1 }, { mes: 'Set', ano: 2025, ent: 2, real: 2, desl: 2 }, { mes: 'Out', ano: 2025, ent: 1, real: 2, desl: 1 }, { mes: 'Nov', ano: 2025, ent: 1, real: 0, desl: 3 }, { mes: 'Dez', ano: 2025, ent: 2, real: 0, desl: 2 },
+        { mes: 'Jan', ano: 2026, ent: 0, real: 0, desl: 0 }, { mes: 'Fev', ano: 2026, ent: 2, real: 2, desl: 0 }, { mes: 'Mar', ano: 2026, ent: 1, real: 0, desl: 0 }
+      ],
+      td_meta: [
+        { mes: 'Ago', ano: 2025, cumpriu: 49, parcial: 33, nao: 340 }, { mes: 'Set', ano: 2025, cumpriu: 69, parcial: 32, nao: 332 }, { mes: 'Out', ano: 2025, cumpriu: 89, parcial: 37, nao: 329 }, { mes: 'Nov', ano: 2025, cumpriu: 136, parcial: 40, nao: 272 }, { mes: 'Dez', ano: 2025, cumpriu: 262, parcial: 40, nao: 172 },
+        { mes: 'Jan', ano: 2026, cumpriu: 0, parcial: 0, nao: 462 }, { mes: 'Fev', ano: 2026, cumpriu: 0, parcial: 0, nao: 462 }, { mes: 'Mar', ano: 2026, cumpriu: 0, parcial: 0, nao: 462 }
+      ],
+      supr_desp: [
+        { mes: 'Jan', ano: 2025, fin: 0, corp: 0, mkt: 0, neg: 0 }, { mes: 'Fev', ano: 2025, fin: 0, corp: 723, mkt: 223, neg: 0 }, { mes: 'Mar', ano: 2025, fin: 0, corp: 0, mkt: 0, neg: 0 }, { mes: 'Abr', ano: 2025, fin: 0, corp: 0, mkt: 2618, neg: 2436 }, { mes: 'Mai', ano: 2025, fin: 0, corp: 644, mkt: 14059, neg: 25408 }, { mes: 'Jun', ano: 2025, fin: 0, corp: 0, mkt: 1063, neg: 30205 }, { mes: 'Jul', ano: 2025, fin: 3592, corp: 3030, mkt: 1276, neg: 44991 }, { mes: 'Ago', ano: 2025, fin: 0, corp: 4179, mkt: 1331, neg: 14278 }, { mes: 'Set', ano: 2025, fin: 0, corp: 1592, mkt: 31216, neg: 32794 }, { mes: 'Out', ano: 2025, fin: 0, corp: 3865, mkt: 8425, neg: 38742 }, { mes: 'Nov', ano: 2025, fin: 0, corp: 0, mkt: 827, neg: 23381 }, { mes: 'Dez', ano: 2025, fin: 0, corp: 0, mkt: 894, neg: 65927 },
+        { mes: 'Jan', ano: 2026, fin: 0, corp: 0, mkt: 487, neg: 101321 }, { mes: 'Fev', ano: 2026, fin: 0, corp: 6904, mkt: 0, neg: 55132 }, { mes: 'Mar', ano: 2026, fin: 0, corp: 6264, mkt: 1592, neg: 46734 }
+      ],
+      supr_contratos: [
+        { mes: 'Jan', ano: 2025, fin: 683, corp: 180477, mkt: 4931, neg: 328 }, { mes: 'Fev', ano: 2025, fin: 683, corp: 6800, mkt: 3619, neg: 328 }, { mes: 'Mar', ano: 2025, fin: 683, corp: 6800, mkt: 2191, neg: 328 }, { mes: 'Abr', ano: 2025, fin: 683, corp: 6800, mkt: 2191, neg: 328 }, { mes: 'Mai', ano: 2025, fin: 683, corp: 6800, mkt: 2191, neg: 328 }, { mes: 'Jun', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 328 }, { mes: 'Jul', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 }, { mes: 'Ago', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 }, { mes: 'Set', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 }, { mes: 'Out', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 }, { mes: 'Nov', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 }, { mes: 'Dez', ano: 2025, fin: 683, corp: 6227, mkt: 2191, neg: 240 },
+        { mes: 'Jan', ano: 2026, fin: 0, corp: 60706, mkt: 961, neg: 2500 }, { mes: 'Fev', ano: 2026, fin: 0, corp: 6940, mkt: 961, neg: 2500 }, { mes: 'Mar', ano: 2026, fin: 0, corp: 6940, mkt: 961, neg: 2500 }
+      ],
+      ti_suporte: [
+        { mes: 'Jul', ano: 2021, v: 70 }, { mes: 'Ago', ano: 2021, v: 71 }, { mes: 'Set', ano: 2021, v: 68 }, { mes: 'Out', ano: 2021, v: 47 }, { mes: 'Nov', ano: 2021, v: 73 }, { mes: 'Dez', ano: 2021, v: 40 },
+        { mes: 'Jan', ano: 2022, v: 42 }, { mes: 'Fev', ano: 2022, v: 50 }, { mes: 'Mar', ano: 2022, v: 68 }, { mes: 'Abr', ano: 2022, v: 40 }, { mes: 'Mai', ano: 2022, v: 30 }, { mes: 'Jun', ano: 2022, v: 58 }, { mes: 'Jul', ano: 2022, v: 51 }, { mes: 'Ago', ano: 2022, v: 80 }, { mes: 'Set', ano: 2022, v: 51 }, { mes: 'Out', ano: 2022, v: 38 }, { mes: 'Nov', ano: 2022, v: 59 }, { mes: 'Dez', ano: 2022, v: 78 },
+        { mes: 'Jan', ano: 2023, v: 103 }, { mes: 'Fev', ano: 2023, v: 44 }, { mes: 'Mar', ano: 2023, v: 101 }, { mes: 'Abr', ano: 2023, v: 83 }, { mes: 'Mai', ano: 2023, v: 45 }, { mes: 'Jun', ano: 2023, v: 55 }, { mes: 'Jul', ano: 2023, v: 98 }, { mes: 'Ago', ano: 2023, v: 96 }, { mes: 'Set', ano: 2023, v: 108 }, { mes: 'Out', ano: 2023, v: 87 }, { mes: 'Nov', ano: 2023, v: 93 }, { mes: 'Dez', ano: 2023, v: 109 },
+        { mes: 'Jan', ano: 2024, v: 114 }, { mes: 'Fev', ano: 2024, v: 119 }, { mes: 'Mar', ano: 2024, v: 137 }, { mes: 'Abr', ano: 2024, v: 119 }, { mes: 'Mai', ano: 2024, v: 82 }, { mes: 'Jun', ano: 2024, v: 88 }, { mes: 'Jul', ano: 2024, v: 136 }, { mes: 'Ago', ano: 2024, v: 92 }, { mes: 'Set', ano: 2024, v: 109 }, { mes: 'Out', ano: 2024, v: 132 }, { mes: 'Nov', ano: 2024, v: 71 }, { mes: 'Dez', ano: 2024, v: 95 },
+        { mes: 'Jan', ano: 2025, v: 135 }, { mes: 'Fev', ano: 2025, v: 177 }, { mes: 'Mar', ano: 2025, v: 165 }, { mes: 'Abr', ano: 2025, v: 178 }, { mes: 'Mai', ano: 2025, v: 165 }, { mes: 'Jun', ano: 2025, v: 186 }, { mes: 'Jul', ano: 2025, v: 147 }, { mes: 'Ago', ano: 2025, v: 171 }, { mes: 'Set', ano: 2025, v: 196 }, { mes: 'Out', ano: 2025, v: 251 }, { mes: 'Nov', ano: 2025, v: 150 }, { mes: 'Dez', ano: 2025, v: 138 },
+        { mes: 'Jan', ano: 2026, v: 172 }, { mes: 'Fev', ano: 2026, v: 131 }, { mes: 'Mar', ano: 2026, v: 159 }
+      ],
+      migracoes: [
+        { nome: 'Lucas Marques Ferreira', tipo: 'PJ', cargo: 'Desenvolvedor de Aplicações', admissao: '24/09/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Jonathan Carlos Munhoz Saraiva', tipo: 'Cooperado', cargo: 'Desenvolvedor de Aplicações', admissao: '22/09/2025', status: 'Ativo', mov: 'Substituição' },
+        { nome: 'Rodrigo da Silva Pires', tipo: 'Cooperado', cargo: 'Gerente de Serviços', admissao: '10/03/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Evandro Ribeiro Dutra', tipo: 'Cooperado', cargo: 'Gerente de Serviços', admissao: '01/11/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Gustavo Magni Bueno', tipo: 'Cooperativa/SCP', cargo: 'Arquiteto de Aplicações', admissao: '01/09/2025', status: 'Ativo', mov: 'Migração SCP' },
+        { nome: 'Thiago Baptista Nogueira Ferraz', tipo: 'Cooperado', cargo: 'Líder CoE Agile', admissao: '04/11/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Tatiana Soares de Lucena', tipo: 'Cooperado', cargo: 'Coordenador Financeiro', admissao: '13/10/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Ezequiel Ferreira dos Santos', tipo: 'Cooperado', cargo: 'CAO – Diretor Corporativo', admissao: '01/12/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Alex Marçullo Teixeira Gonçalves', tipo: 'PJ', cargo: 'Desenvolvedor de Aplicações', admissao: '03/02/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Fabiana Franco Vieira', tipo: 'Cooperado', cargo: 'Analista de RH', admissao: '01/10/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Marcos Fortuna', tipo: 'Cooperado', cargo: 'CMO – Diretor de Marketing', admissao: '01/05/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Rodrigo Loureiro', tipo: 'Cooperado', cargo: 'Gerente Financeiro', admissao: '01/12/2025', status: 'Ativo', mov: 'Migração Cooperativa' },
+        { nome: 'Ricardo Yamashiro', tipo: 'Cooperado', cargo: 'Gerente de Contas', admissao: '12/05/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Otávio Silva Cunha', tipo: 'PJ', cargo: 'Executivo de Contas', admissao: '12/05/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Homero Carlos de Oliveira Tavares', tipo: 'Cooperado', cargo: 'Diretor de Operações', admissao: '03/11/2025', status: 'Ativo', mov: 'Nova Contratação' },
+        { nome: 'Lucas Muratori', tipo: 'Cooperado', cargo: 'Head de Digital Learning & AI', admissao: '01/03/2025', status: 'Ativo', mov: 'Nova Contratação' }
+      ]
+    };
+
+    // ═══════════════════════════════════════════════
+    //  STATE & UTILS
+    // ═══════════════════════════════════════════════
+    let currentYear = 2026;
+    const charts = {};
+    const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const COLORS = {
+      blue: '#0066b3', pink: '#d83d96', teal: '#0891b2',
+      green: '#16a34a', amber: '#d97706', violet: '#8b5cf6',
+      red: '#dc2626', gray: '#6b7280'
+    };
+
+    function pct(v) { return v != null && !isNaN(v) ? (v * 100).toFixed(1) + '%' : '—'; }
+    function fmtN(v, dec = 0) { if (v == null || isNaN(v)) return '—'; return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    function delta(arr, key) {
+      const d = arr.filter(r => r[key] != null && !isNaN(r[key]));
+      if (d.length < 2) return null;
+      return ((d[d.length - 1][key] - d[d.length - 2][key]) / d[d.length - 2][key] * 100).toFixed(1);
+    }
+    function last(arr, key) {
+      const d = arr.filter(r => r[key] != null && !isNaN(r[key]));
+      return d.length ? d[d.length - 1][key] : null;
+    }
+    function byYear(arr, y) {
+      if (y === 'all') return arr.filter(r => r.v != null && !isNaN(r.v));
+      return arr.filter(r => r.ano == y && r.v != null && !isNaN(r.v));
+    }
+    function byYearKey(arr, y, key) {
+      if (y === 'all') return arr.filter(r => r[key] != null && !isNaN(r[key]));
+      return arr.filter(r => r.ano == y);
+    }
+
+    function mkChart(id, config) {
+      if (charts[id]) charts[id].destroy();
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      charts[id] = new Chart(ctx, config);
+      return charts[id];
+    }
+
+    function kpiCard(label, value, unit = '', delta = null, color = 'blue') {
+      let deltaHtml = '';
+      if (delta != null) {
+        const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral';
+        const sym = delta > 0 ? '↑' : delta < 0 ? '↓' : '→';
+        deltaHtml = `<div class="kpi-delta ${cls}">${sym} ${Math.abs(delta).toFixed(1)}%</div>`;
+      }
+      return `<div class="kpi-card ${color}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value">${value}<span style="font-size:13px;font-weight:600;color:var(--gray-500);margin-left:3px;">${unit}</span></div>
+    ${deltaHtml}
+  </div>`;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  TAB NAV
+    // ═══════════════════════════════════════════════
+    function showTab(tab) {
+      document.querySelectorAll('.main').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('page-' + tab).classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+      // lazy render
+      renderTab(tab);
+    }
+
+    function filterYear(y) {
+      currentYear = y === 'all' ? 'all' : parseInt(y);
+      const active = document.querySelector('.nav-tab.active');
+      if (active) {
+        const id = active.id.replace('tab-', '');
+        renderTab(id);
+      }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  RENDER TABS
+    // ═══════════════════════════════════════════════
+    function renderTab(tab) {
+      switch (tab) {
+        case 'dp': renderDP(); break;
+        case 'dho': renderDHO(); break;
+        case 'rs': renderRS(); break;
+        case 'td': renderTD(); break;
+        case 'supr': renderSUPR(); break;
+        case 'ti': renderTI(); break;
+        case 'migra': renderMigra(); break;
+      }
+    }
+
+    // ── DP ──
+    function renderDP() {
+      const y = currentYear;
+      const ef = last(DATA.efetivo, 'v');
+      const hireY = byYear(DATA.contrat, y).reduce((s, r) => s + r.v, 0);
+      const demitY = byYear(DATA.demit, y).reduce((s, r) => s + r.v, 0);
+      const heL = last(DATA.he, 'v');
+      const fpL = last(DATA.fp, 'custo');
+
+      document.getElementById('dp-kpis').innerHTML =
+        kpiCard('Efetivo Atual', fmtN(ef), 'prof.', null, 'blue') +
+        kpiCard('Contratações', fmtN(hireY), y !== 'all' ? y : '', null, 'green') +
+        kpiCard('Desligamentos', fmtN(demitY), y !== 'all' ? y : '', null, 'amber') +
+        kpiCard('Saldo', fmtN(hireY - demitY), '', null, 'teal') +
+        kpiCard('HE (último mês)', fmtN(heL), 'h', null, 'pink') +
+        kpiCard('FP Total', 'R$ ' + fmtN(fpL, 1), 'mi', null, 'violet');
+
+      // Contrat x Demit
+      const cData = byYear(DATA.contrat, y);
+      const dData = byYear(DATA.demit, y);
+      mkChart('chartContratDemit', {
+        type: 'bar',
+        data: {
+          labels: cData.map(r => r.mes),
+          datasets: [
+            { label: 'Contratações', data: cData.map(r => r.v), backgroundColor: 'rgba(0,102,179,.8)', borderRadius: 4 },
+            { label: 'Demissões', data: dData.map(r => r.v), backgroundColor: 'rgba(216,61,150,.8)', borderRadius: 4 }
+          ]
+        },
+        options: baseOpts('Qtde')
+      });
+
+      // Efetivo
+      const efData = byYear(DATA.efetivo, y);
+      mkChart('chartEfetivo', {
+        type: 'line',
+        data: {
+          labels: efData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{
+            label: 'Efetivo', data: efData.map(r => r.v),
+            borderColor: COLORS.blue, backgroundColor: 'rgba(0,102,179,.08)',
+            fill: true, tension: .4, pointRadius: 3
+          }]
+        },
+        options: baseOpts('Profissionais')
+      });
+
+      // Efetivo por tipo
+      const etData = DATA.efTipo.filter(r => y === 'all' || r.ano == y);
+      mkChart('chartEfTipo', {
+        type: 'bar',
+        data: {
+          labels: etData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'CLT', data: etData.map(r => r.clt), backgroundColor: 'rgba(0,102,179,.85)', borderRadius: 3 },
+            { label: 'PJ', data: etData.map(r => r.pj), backgroundColor: 'rgba(216,61,150,.85)', borderRadius: 3 },
+            { label: 'Coop', data: etData.map(r => r.coop), backgroundColor: 'rgba(8,145,178,.85)', borderRadius: 3 },
+            { label: 'SCP', data: etData.map(r => r.scp), backgroundColor: 'rgba(139,92,246,.85)', borderRadius: 3 }
+          ]
+        },
+        options: { ...baseOpts('Profissionais'), plugins: { ...baseOpts().plugins, tooltip: { mode: 'index' } }, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Profissionais' } } } }
+      });
+
+      // Rotatividade
+      const rData = DATA.rotat.filter(r => y === 'all' || r.ano == y);
+      mkChart('chartRotat', {
+        type: 'line',
+        data: {
+          labels: rData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Rotatividade %', data: rData.map(r => r.v), borderColor: COLORS.pink, backgroundColor: 'rgba(216,61,150,.08)', fill: true, tension: .4 },
+            { label: 'Meta', data: rData.map(r => r.meta), borderColor: COLORS.amber, borderDash: [6, 4], pointRadius: 0, borderWidth: 2 }
+          ]
+        },
+        options: baseOpts('%')
+      });
+
+      // HE
+      const heData = DATA.he.filter(r => y === 'all' || r.ano == y);
+      mkChart('chartHE', {
+        type: 'bar',
+        data: {
+          labels: heData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Horas Extras', data: heData.map(r => r.v), backgroundColor: 'rgba(8,145,178,.75)', borderRadius: 4 }]
+        },
+        options: baseOpts('Horas')
+      });
+
+      // FP
+      const fpData = DATA.fp.filter(r => y === 'all' || r.ano == y);
+      mkChart('chartFP', {
+        type: 'bar',
+        data: {
+          labels: fpData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Custo (mi R$)', data: fpData.map(r => r.custo), backgroundColor: 'rgba(0,102,179,.8)', borderRadius: 4, yAxisID: 'y' },
+            { label: 'Efetivo /100', data: fpData.map(r => (r.ef / 100).toFixed(2)), type: 'line', borderColor: COLORS.pink, backgroundColor: 'transparent', yAxisID: 'y1', tension: .4, pointRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } }, tooltip: { mode: 'index' } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { title: { display: true, text: 'Custo mi R$' }, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 10 } } },
+            y1: { position: 'right', title: { display: true, text: 'Efetivo/100' }, grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+
+      // FP CAO
+      const fpCData = DATA.fp_cao.filter(r => y === 'all' || r.ano == y);
+      mkChart('chartFPCAO', {
+        type: 'bar',
+        data: {
+          labels: fpCData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Custo (R$ mil)', data: fpCData.map(r => r.custo), backgroundColor: 'rgba(139,92,246,.8)', borderRadius: 4, yAxisID: 'y' },
+            { label: 'Efetivo', data: fpCData.map(r => r.ef), type: 'line', borderColor: COLORS.teal, backgroundColor: 'transparent', yAxisID: 'y1', tension: .4, pointRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } }, tooltip: { mode: 'index' } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { title: { display: true, text: 'R$ mil' }, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 10 } } },
+            y1: { position: 'right', title: { display: true, text: 'Efetivo' }, grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+
+      // Acumulado contratações
+      const acumData = DATA.contrat.filter(r => (y === 'all' || r.ano == y) && r.v != null && !isNaN(r.v));
+      let acum = 0, acumArr = [];
+      acumData.forEach(r => { acum += r.v; acumArr.push(acum); });
+      mkChart('chartAcum', {
+        type: 'line',
+        data: {
+          labels: acumData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{
+            label: 'Acumulado', data: acumArr,
+            borderColor: COLORS.teal, backgroundColor: 'rgba(8,145,178,.08)', fill: true, tension: .4
+          }]
+        },
+        options: baseOpts('Contratações Acum.')
+      });
+    }
+
+    // ── DHO ──
+    function renderDHO() {
+      const y = currentYear;
+      const hDataRaw = DATA.humor.filter(r => y === 'all' || r.ano == y);
+      const lastH = hDataRaw.length ? hDataRaw[hDataRaw.length - 1] : null;
+      const totalH = lastH ? lastH.mf + lastH.f + lastH.n + lastH.t + lastH.mt : 0;
+      const posP = lastH && totalH > 0 ? ((lastH.mf + lastH.f) / totalH * 100).toFixed(0) : 0;
+      const fbData = DATA.feedback.filter(r => y === 'all' || r.ano == y);
+      const fbL = fbData.length ? fbData[fbData.length - 1].v : null;
+
+      const yLabel = y === 'all' ? 'Todos os Anos' : y;
+      document.getElementById('humor-subtitle').textContent = 'Distribuição mensal — ' + yLabel;
+
+      document.getElementById('dho-kpis').innerHTML =
+        kpiCard('Muito Feliz + Feliz', posP, '%', null, 'green') +
+        kpiCard('Feedbacks (último)', fmtN(fbL), 'feedbacks', null, 'blue') +
+        kpiCard('Respostas Humor', fmtN(totalH), 'respostas', null, 'teal');
+
+      // Humor
+      mkChart('chartHumor', {
+        type: 'bar',
+        data: {
+          labels: hDataRaw.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Muito Feliz', data: hDataRaw.map(r => r.mf), backgroundColor: '#16a34a', borderRadius: 3 },
+            { label: 'Feliz', data: hDataRaw.map(r => r.f), backgroundColor: '#4ade80', borderRadius: 3 },
+            { label: 'Neutro', data: hDataRaw.map(r => r.n), backgroundColor: '#fbbf24', borderRadius: 3 },
+            { label: 'Triste', data: hDataRaw.map(r => r.t), backgroundColor: '#f87171', borderRadius: 3 },
+            { label: 'Muito Triste', data: hDataRaw.map(r => r.mt), backgroundColor: '#dc2626', borderRadius: 3 }
+          ]
+        },
+        options: {
+          ...baseOpts('Respostas'),
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'Respostas' }, ticks: { font: { size: 10 } } } }
+        }
+      });
+
+      // Feedback
+      mkChart('chartFeedback', {
+        type: 'bar',
+        data: {
+          labels: fbData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Feedbacks', data: fbData.map(r => r.v), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 4 }]
+        },
+        options: baseOpts('Qtde')
+      });
+    }
+
+    // ── RS ──
+    function renderRS() {
+      const y = currentYear;
+      const tData = DATA.rs_tempo.filter(r => y === 'all' || r.ano == y);
+      const vData = DATA.rs_vagas.filter(r => y === 'all' || r.ano == y);
+      const dData = DATA.rs_desconto.filter(r => y === 'all' || r.ano == y);
+      const reData = DATA.rs_realoc.filter(r => y === 'all' || r.ano == y);
+
+      const tL = tData.length ? tData[tData.length - 1].dias : null;
+      const vTotal = vData.reduce((s, r) => s + (r.fc || 0), 0);
+      const discAvg = dData.length ? (dData.reduce((s, r) => s + (r.desconto || 0), 0) / dData.length * 100).toFixed(1) : 0;
+      const realTotal = reData.reduce((s, r) => s + (r.real || 0), 0);
+
+      const yLabel = y === 'all' ? 'Total' : y;
+      document.getElementById('rs-kpis').innerHTML =
+        kpiCard('Tempo Médio (último)', fmtN(tL, 1), 'dias', null, 'blue') +
+        kpiCard('Vagas Fechadas ' + yLabel, fmtN(vTotal), '', null, 'green') +
+        kpiCard('Desconto Médio', discAvg, '%', null, 'teal') +
+        kpiCard('Realocações ' + yLabel, fmtN(realTotal), '', null, 'violet');
+
+      mkChart('chartRSTempo', {
+        type: 'bar',
+        data: {
+          labels: tData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Vagas (qtde)', data: tData.map(r => r.vagas), backgroundColor: 'rgba(0,102,179,.5)', borderRadius: 4, yAxisID: 'y' },
+            { label: 'Tempo (dias)', data: tData.map(r => r.dias), type: 'line', borderColor: COLORS.pink, yAxisID: 'y1', tension: .4, pointRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } }, tooltip: { mode: 'index' } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { title: { display: true, text: 'Vagas' }, ticks: { font: { size: 10 } } },
+            y1: { position: 'right', title: { display: true, text: 'Dias' }, grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+
+      mkChart('chartRSVagas', {
+        type: 'bar',
+        data: {
+          labels: vData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Vagas Abertas', data: vData.map(r => r.ab), backgroundColor: 'rgba(8,145,178,.75)', borderRadius: 4 },
+            { label: 'Vagas Fechadas', data: vData.map(r => r.fc), backgroundColor: 'rgba(22,163,74,.75)', borderRadius: 4 }
+          ]
+        },
+        options: baseOpts('Qtde')
+      });
+
+      mkChart('chartRSDesconto', {
+        type: 'bar',
+        data: {
+          labels: dData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Desconto %', data: dData.map(r => (r.desconto * 100).toFixed(1)), backgroundColor: dData.map(r => r.desconto >= 0.15 ? 'rgba(22,163,74,.8)' : 'rgba(217,119,6,.8)'), borderRadius: 4 },
+          ]
+        },
+        options: {
+          ...baseOpts('%'),
+          plugins: {
+            ...baseOpts().plugins,
+            annotation: { annotations: { metaLine: { type: 'line', yMin: 15, yMax: 15, borderColor: COLORS.red, borderWidth: 2, borderDash: [6, 4], label: { display: true, content: 'Meta 15%', position: 'end', font: { size: 10 } } } } }
+          }
+        }
+      });
+
+      mkChart('chartRSRealoc', {
+        type: 'bar',
+        data: {
+          labels: reData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Entrada', data: reData.map(r => r.ent), backgroundColor: 'rgba(0,102,179,.75)', borderRadius: 3 },
+            { label: 'Realocados', data: reData.map(r => r.real), backgroundColor: 'rgba(22,163,74,.75)', borderRadius: 3 },
+            { label: 'Desligados', data: reData.map(r => r.desl), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 3 }
+          ]
+        },
+        options: baseOpts('Qtde')
+      });
+    }
+
+    // ── TD ──
+    function renderTD() {
+      const y = currentYear;
+      const tdDataRaw = DATA.td_meta.filter(r => y === 'all' || r.ano == y);
+      const last_ = tdDataRaw.length ? tdDataRaw[tdDataRaw.length - 1] : null;
+      const totalLast = last_ ? last_.cumpriu + last_.parcial + last_.nao : 0;
+      const pctLast = last_ && totalLast > 0 ? ((last_.cumpriu + last_.parcial) / totalLast * 100).toFixed(0) : 0;
+      const mesLabel = last_ ? ` (${last_.mes})` : '';
+
+      document.getElementById('td-kpis').innerHTML =
+        kpiCard('Meta Cumprida' + mesLabel, pctLast, '%', null, 'green') +
+        kpiCard('Cumpriram' + mesLabel, fmtN(last_ ? last_.cumpriu : 0), '', null, 'blue') +
+        kpiCard('Não Registrou' + mesLabel, fmtN(last_ ? last_.nao : 0), '', null, 'amber');
+
+      mkChart('chartTDMeta', {
+        type: 'bar',
+        data: {
+          labels: tdDataRaw.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Cumpriu', data: tdDataRaw.map(r => r.cumpriu), backgroundColor: 'rgba(22,163,74,.85)', borderRadius: 3 },
+            { label: 'Parcial', data: tdDataRaw.map(r => r.parcial), backgroundColor: 'rgba(217,119,6,.85)', borderRadius: 3 },
+            { label: 'Não Registrou', data: tdDataRaw.map(r => r.nao), backgroundColor: 'rgba(156,163,175,.85)', borderRadius: 3 }
+          ]
+        },
+        options: {
+          ...baseOpts('Colaboradores'),
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'Colaboradores' }, ticks: { font: { size: 10 } } } }
+        }
+      });
+
+      mkChart('chartTDPct', {
+        type: 'line',
+        data: {
+          labels: tdDataRaw.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{
+            label: '% Cumprimento',
+            data: tdDataRaw.map(r => {
+              const t = r.cumpriu + r.parcial + r.nao;
+              return t > 0 ? ((r.cumpriu + r.parcial) / t * 100).toFixed(1) : 0;
+            }),
+            borderColor: COLORS.green, backgroundColor: 'rgba(22,163,74,.08)', fill: true, tension: .4, pointRadius: 5
+          }]
+        },
+        options: baseOpts('%')
+      });
+    }
+
+
+    // ── SUPR ──
+    function renderSUPR() {
+      const y = currentYear;
+      const dData = DATA.supr_desp.filter(r => y === 'all' || r.ano == y);
+      const totalDesp = dData.reduce((s, r) => s + r.fin + r.corp + r.mkt + r.neg, 0);
+      const cData = DATA.supr_contratos.filter(r => y === 'all' || r.ano == y);
+      const lastC = cData[cData.length - 1];
+      const totalContr = lastC ? lastC.fin + lastC.corp + lastC.mkt + lastC.neg : 0;
+
+      document.getElementById('supr-kpis').innerHTML =
+        kpiCard('Desp. Viagem Total', 'R$ ' + fmtN(totalDesp, 0), '', null, 'amber') +
+        kpiCard('Contratos Vigentes', 'R$ ' + fmtN(totalContr, 0), '/mês', null, 'blue') +
+        kpiCard('Maior Gasto', 'Negócios', '', null, 'pink');
+
+      mkChart('chartDespViagem', {
+        type: 'bar',
+        data: {
+          labels: dData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Financeira', data: dData.map(r => r.fin), backgroundColor: 'rgba(139,92,246,.75)', borderRadius: 3 },
+            { label: 'Corporativa', data: dData.map(r => r.corp), backgroundColor: 'rgba(0,102,179,.75)', borderRadius: 3 },
+            { label: 'Marketing', data: dData.map(r => r.mkt), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 3 },
+            { label: 'Negócios', data: dData.map(r => r.neg), backgroundColor: 'rgba(217,119,6,.75)', borderRadius: 3 }
+          ]
+        },
+        options: {
+          ...baseOpts('R$'),
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'R$' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + fmtN(v, 0) } } }
+        }
+      });
+
+      mkChart('chartContratos', {
+        type: 'bar',
+        data: {
+          labels: cData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [
+            { label: 'Financeira', data: cData.map(r => r.fin), backgroundColor: 'rgba(139,92,246,.75)', borderRadius: 3 },
+            { label: 'Corporativa', data: cData.map(r => r.corp), backgroundColor: 'rgba(0,102,179,.75)', borderRadius: 3 },
+            { label: 'Marketing', data: cData.map(r => r.mkt), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 3 },
+            { label: 'Negócios', data: cData.map(r => r.neg), backgroundColor: 'rgba(217,119,6,.75)', borderRadius: 3 }
+          ]
+        },
+        options: {
+          ...baseOpts('R$/mês'),
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'R$/mês' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + fmtN(v, 0) } } }
+        }
+      });
+    }
+
+    // ── TI ──
+    function renderTI() {
+      const y = currentYear;
+      const tiData = DATA.ti_suporte.filter(r => y === 'all' || r.ano == y);
+      const l = tiData.length ? tiData[tiData.length - 1].v : null;
+      const avgY = tiData.length ? (tiData.reduce((s, r) => s + (r.v || 0), 0) / tiData.length).toFixed(0) : 0;
+
+      const yLabel = y === 'all' ? 'Total' : y;
+      document.getElementById('ti-kpis').innerHTML =
+        kpiCard('Tickets (último mês)', fmtN(l), 'tickets', null, 'blue') +
+        kpiCard('Média Mensal ' + yLabel, fmtN(avgY), 'tickets', null, 'teal') +
+        kpiCard('Pico ' + yLabel, fmtN(tiData.reduce((max, r) => Math.max(max, r.v || 0), 0)), 'tickets', null, 'amber');
+
+      mkChart('chartTISuport', {
+        type: 'line',
+        data: {
+          labels: tiData.map(r => r.mes.slice(0, 3) + '/' + String(r.ano).slice(2)),
+          datasets: [{
+            label: 'Tickets', data: tiData.map(r => r.v),
+            borderColor: COLORS.blue, backgroundColor: 'rgba(0,102,179,.08)', fill: true, tension: .3, pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } }, tooltip: { callbacks: { label: c => 'Tickets: ' + c.parsed.y } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45 } },
+            y: { title: { display: true, text: 'Tickets' }, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // ── MIGRA ──
+    function renderMigra() {
+      const y = currentYear;
+      const yLabel = y === 'all' ? 'Todos os Anos' : y;
+      document.getElementById('migra-badge').textContent = yLabel;
+      document.getElementById('migra-sub').textContent = `Migrações entre tipos de contratação e novas admissões em ${yLabel}.`;
+      document.getElementById('migra-table-title').textContent = `Lista de Admissões/Migrações ${yLabel}`;
+
+      const migs = DATA.migracoes;
+      document.getElementById('migTotal').textContent = migs.length + ' (amostra)';
+
+      // count by tipo
+      const byTipo = {};
+      migs.forEach(m => { byTipo[m.tipo] = (byTipo[m.tipo] || 0) + 1; });
+      const byMov = {};
+      migs.forEach(m => {
+        const cat = m.mov.includes('Nova') ? 'Nova Contratação' : m.mov.includes('Subst') ? 'Substituição' : 'Migração';
+        byMov[cat] = (byMov[cat] || 0) + 1;
+      });
+
+      // migration summary cards
+      const colors = ['blue', 'pink', 'teal', 'violet', 'green', 'amber'];
+      document.getElementById('migrationCards').innerHTML =
+        Object.entries(byTipo).map((([k, v], i) => `
+      <div class="mig-card ${colors[i % colors.length]}">
+        <div class="mig-count">${v}</div>
+        <div class="mig-label">${k}</div>
+      </div>`)).join('') +
+        Object.entries(byMov).map(([k, v], i) => `
+      <div class="mig-card ${colors[(i + 3) % colors.length]}">
+        <div class="mig-count">${v}</div>
+        <div class="mig-label">${k}</div>
+      </div>`).join('');
+
+      mkChart('chartMigPie', {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(byTipo),
+          datasets: [{ data: Object.values(byTipo), backgroundColor: ['rgba(0,102,179,.85)', 'rgba(216,61,150,.85)', 'rgba(8,145,178,.85)', 'rgba(139,92,246,.85)', 'rgba(22,163,74,.85)'], borderWidth: 2 }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+      });
+
+      mkChart('chartMigTipo', {
+        type: 'pie',
+        data: {
+          labels: Object.keys(byMov),
+          datasets: [{ data: Object.values(byMov), backgroundColor: ['rgba(22,163,74,.85)', 'rgba(217,119,6,.85)', 'rgba(0,102,179,.85)'], borderWidth: 2 }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+      });
+
+      filterMig();
+    }
+
+    function filterMig() {
+      const q = (document.getElementById('migSearch').value || '').toLowerCase();
+      const rows = DATA.migracoes.filter(r =>
+        !q || r.nome.toLowerCase().includes(q) || r.tipo.toLowerCase().includes(q) || r.cargo.toLowerCase().includes(q) || r.mov.toLowerCase().includes(q)
+      );
+      const movColor = { 'Nova Contratação': '#16a34a', 'Substituição': '#d97706', 'Migração SCP': '#0891b2', 'Migração Cooperativa': '#0066b3', 'Migração PJ': '#8b5cf6', 'Migração COP/SCP': '#8b5cf6', 'Migração Cooperativa': '#0066b3', 'Migração Estagiario/PJ': '#d83d96', 'Migração Estagiario/COP': '#d83d96' };
+      const statusBadge = s => s === 'Ativo' ? '<span style="color:#16a34a;font-weight:700;">● Ativo</span>' : '<span style="color:#dc2626;font-weight:700;">● Desligado</span>';
+
+      document.getElementById('migBody').innerHTML = rows.map(r => `
+    <tr>
+      <td style="font-weight:600;">${r.nome}</td>
+      <td><span style="background:var(--blue-light);color:var(--blue);padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;">${r.tipo}</span></td>
+      <td style="color:var(--gray-700);">${r.cargo}</td>
+      <td>${r.admissao}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td><span style="color:${movColor[r.mov] || '#374151'};font-weight:600;font-size:11px;">${r.mov}</span></td>
+    </tr>`).join('');
+    }
+
+    // ═══════════════════════════════════════════════
+    //  BASE CHART OPTIONS
+    // ═══════════════════════════════════════════════
+    function baseOpts(yLabel = '') {
+      return {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 11 }, padding: 12 } },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
+          y: { title: { display: !!yLabel, text: yLabel }, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 10 } } }
+        }
+      };
+    }
+
+    // ═══════════════════════════════════════════════
+    //  MODAL / EDIT
+    // ═══════════════════════════════════════════════
+    let currentEditKey = '';
+
+    const editConfigs = {
+      dp_contrat: { title: 'Contratações', data: 'contrat', fields: [{ k: 'v', label: 'Contratações' }] },
+      dp_demit: { title: 'Demissões', data: 'demit', fields: [{ k: 'v', label: 'Demissões' }] },
+      dp_efetivo: { title: 'Efetivo Total', data: 'efetivo', fields: [{ k: 'v', label: 'Efetivo' }] },
+      dp_efetivo_tipo: { title: 'Efetivo por Tipo', data: 'efTipo', fields: [{ k: 'clt', label: 'CLT' }, { k: 'pj', label: 'PJ' }, { k: 'coop', label: 'COOP' }, { k: 'scp', label: 'SCP' }] },
+      dp_rotat: { title: 'Rotatividade', data: 'rotat', fields: [{ k: 'v', label: 'Rotat. (qtde)' }, { k: 'meta', label: 'Meta (%)' }] },
+      dp_he: { title: 'Horas Extras', data: 'he', fields: [{ k: 'v', label: 'HE (horas)' }] },
+      dp_fp: { title: 'Folha de Pagamento — Total', data: 'fp', fields: [{ k: 'custo', label: 'Custo (mi R$)' }, { k: 'ef', label: 'Efetivo×100' }] },
+      dp_fp_cao: { title: 'Folha de Pagamento — CAO', data: 'fp_cao', fields: [{ k: 'custo', label: 'Custo (R$ mil)' }, { k: 'ef', label: 'Efetivo' }] },
+      dho_humor: { title: 'Humor dos Colaboradores', data: 'humor', fields: [{ k: 'mf', label: 'Muito Feliz' }, { k: 'f', label: 'Feliz' }, { k: 'n', label: 'Neutro' }, { k: 't', label: 'Triste' }, { k: 'mt', label: 'Muito Triste' }] },
+      dho_feedback: { title: 'Feedbacks', data: 'feedback', fields: [{ k: 'v', label: 'Feedbacks' }] },
+      rs_tempo: { title: 'Tempo R&S', data: 'rs_tempo', fields: [{ k: 'vagas', label: 'Vagas (qtde)' }, { k: 'dias', label: 'Tempo (dias)' }] },
+      rs_vagas: { title: 'Vagas R&S', data: 'rs_vagas', fields: [{ k: 'ab', label: 'Abertas' }, { k: 'fc', label: 'Fechadas' }] },
+      rs_desconto: { title: 'Desconto R&S', data: 'rs_desconto', fields: [{ k: 'desconto', label: 'Desconto (0.00–1.00)' }] },
+      rs_realoc: { title: 'Realocações', data: 'rs_realoc', fields: [{ k: 'ent', label: 'Entrada' }, { k: 'real', label: 'Realocados' }, { k: 'desl', label: 'Desligados' }] },
+      td_meta: { title: 'Meta T&D', data: 'td_meta', fields: [{ k: 'cumpriu', label: 'Cumpriu' }, { k: 'parcial', label: 'Parcial' }, { k: 'nao', label: 'Não Registrou' }] },
+      supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'Financeira' }, { k: 'corp', label: 'Corporativa' }, { k: 'mkt', label: 'Marketing' }, { k: 'neg', label: 'Negócios' }] },
+      supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'Financeira' }, { k: 'corp', label: 'Corporativa' }, { k: 'mkt', label: 'Marketing' }, { k: 'neg', label: 'Negócios' }] },
+      ti_suporte: { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] }
+    };
+
+    function openModal(key) {
+      currentEditKey = key;
+      const cfg = editConfigs[key];
+      if (!cfg) return;
+      document.getElementById('modalTitle').textContent = '✏️ ' + cfg.title;
+      const rows = DATA[cfg.data];
+      const fields = cfg.fields;
+
+      // build table
+      let html = `<div class="tip">📝 Edite os valores diretamente nas células. Linhas futuras (sem dados) ficam em branco.</div>
+  <div class="data-table-wrap"><table class="data-table">
+  <thead><tr><th>Mês/Ano</th>${fields.map(f => `<th>${f.label}</th>`).join('')}</tr></thead>
+  <tbody>`;
+
+      rows.forEach((r, i) => {
+        const yr = r.ano || ''; const ms = r.mes || '';
+        html += `<tr><td class="col-mes">${ms} ${yr}</td>`;
+        fields.forEach(f => {
+          const val = r[f.k] != null && !isNaN(r[f.k]) ? r[f.k] : '';
+          html += `<td class="col-num"><input type="number" step="any" data-i="${i}" data-k="${f.k}" value="${val}" placeholder="—"></td>`;
+        });
+        html += `</tr>`;
+      });
+
+      html += '</tbody></table></div>';
+      document.getElementById('modalBody').innerHTML = html;
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    function saveModal() {
+      const cfg = editConfigs[currentEditKey];
+      if (!cfg) return;
+      const rows = DATA[cfg.data];
+      document.querySelectorAll('#modalBody input').forEach(inp => {
+        const i = parseInt(inp.dataset.i);
+        const k = inp.dataset.k;
+        const v = inp.value.trim();
+        rows[i][k] = v === '' ? null : parseFloat(v);
+      });
+
+      // recalculate M_M and acum where applicable
+      if (['contrat', 'demit', 'efetivo', 'he'].includes(cfg.data)) {
+        const d = DATA[cfg.data];
+        d.forEach((r, i) => {
+          if (i > 0 && r.v != null && d[i - 1].v != null && d[i - 1].v !== 0)
+            r.mm = (r.v - d[i - 1].v) / d[i - 1].v;
+        });
+      }
+
+      closeModal();
+      // re-render active tab
+      const active = document.querySelector('.nav-tab.active');
+      if (active) renderTab(active.id.replace('tab-', ''));
+    }
+
+    // Close on overlay click
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    });
+
+    // ═══════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════
+    document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleDateString('pt-BR');
+    renderDP(); // default tab
+    // ensure selector matches initial currentYear
+    document.getElementById('globalYear').value = currentYear;
+  </script>
+</body>
+
+</html>
