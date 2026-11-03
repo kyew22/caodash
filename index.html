@@ -2157,13 +2157,50 @@
       const heL = last(DATA.he, 'v');
       const fpL = last(DATA.fp, 'custo');
 
+      // helper: retorna [penúltimo, último] valores não-nulos de um campo
+      function lastTwo(arr, key) {
+        const d = arr.filter(r => r[key] != null && !isNaN(r[key]));
+        return d.length >= 2 ? [d[d.length - 2][key], d[d.length - 1][key]] : d.length === 1 ? [null, d[0][key]] : [null, null];
+      }
+      function calcDelta(prev, curr) {
+        if (prev == null || curr == null || prev === 0) return null;
+        return ((curr - prev) / Math.abs(prev)) * 100;
+      }
+
+      const [rotatPrev, rotatCurr] = lastTwo(DATA.rotat, 'v');
+      const rotatDelta = calcDelta(rotatPrev, rotatCurr);
+
+      const [custosPrev, custosCurr] = lastTwo(DATA.fp, 'custo');
+      const custosDelta = calcDelta(custosPrev, custosCurr);
+
+      // Despesas = soma de todos os CCs num mês
+      const ccCCs = ['CAO','SW','HW','R&S','DP','T&D','DHO','Contratos','Suprimentos'];
+      const ccAll = (DATA.custo_cc || []).filter(r => ccCCs.some(cc => r[cc] != null));
+      const ccByPeriod = {};
+      ccAll.forEach(r => {
+        const k = r.ano + '-' + r.mes;
+        if (!ccByPeriod[k]) ccByPeriod[k] = { ano: r.ano, mes: r.mes, total: 0 };
+        ccCCs.forEach(cc => { if (r[cc] != null) ccByPeriod[k].total += r[cc]; });
+      });
+      const ccPeriods = Object.values(ccByPeriod).sort((a, b) => a.ano !== b.ano ? a.ano - b.ano : a.mes?.localeCompare(b.mes));
+      const despPrev = ccPeriods.length >= 2 ? ccPeriods[ccPeriods.length - 2].total : null;
+      const despCurr = ccPeriods.length >= 1 ? ccPeriods[ccPeriods.length - 1].total : null;
+      const despDelta = calcDelta(despPrev, despCurr);
+
+      const [fpCaoPrev, fpCaoCurr] = lastTwo(DATA.fp_cao, 'custo');
+      const fpCaoDelta = calcDelta(fpCaoPrev, fpCaoCurr);
+
       document.getElementById('dp-kpis').innerHTML =
         kpiCard('Efetivo Atual', fmtN(ef), 'prof.', null, 'blue') +
         kpiCard('Contratações', fmtN(hireY), y !== 'all' ? y : '', null, 'green') +
         kpiCard('Desligamentos', fmtN(demitY), y !== 'all' ? y : '', null, 'amber') +
         kpiCard('Saldo', fmtN(hireY - demitY), '', null, 'teal') +
         kpiCard('HE (último mês)', fmtN(heL), 'h', null, 'pink') +
-        kpiCard('FP Total', 'R$ ' + fmtN(fpL, 1), 'mi', null, 'violet');
+        kpiCard('FP Total', 'R$ ' + fmtN(fpL, 1), 'mi', null, 'violet') +
+        kpiCard('Rotatividade', rotatCurr != null ? fmtN(rotatCurr) : '—', '', rotatDelta, 'pink') +
+        kpiCard('Custos', custosCurr != null ? 'R$ ' + fmtN(custosCurr, 1) : '—', 'mi', custosDelta, 'violet') +
+        kpiCard('Despesas', despCurr != null ? 'R$ ' + fmtN(despCurr / 1000, 1) : '—', 'mi', despDelta, 'amber') +
+        kpiCard('FP Dir. Corp.', fpCaoCurr != null ? 'R$ ' + fmtN(fpCaoCurr, 1) : '—', 'mi', fpCaoDelta, 'teal');
 
       // Contrat x Demit
       const cData = byYear(DATA.contrat, y);
