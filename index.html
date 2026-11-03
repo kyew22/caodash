@@ -1266,6 +1266,20 @@
         </div>
         <div class="chart-body" style="height:320px;"><canvas id="chartCustoCC"></canvas></div>
       </div>
+      <!-- Profissionais por Cliente -->
+      <div class="chart-card" style="grid-column: 1 / -1;" id="dp-prof-cliente-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Profissionais por Cliente</div>
+            <div class="chart-subtitle">Distribuição CLT · PJ · Cooperado por cliente — mês/ano selecionado</div>
+          </div>
+          <div class="chart-actions" style="gap:6px;display:flex;align-items:center;">
+            <button class="btn-edit" onclick="openModalProfCliente()" id="btn-edit-prof-cliente">✏️ Editar</button>
+            <button class="btn-edit" onclick="openGerenciarClientes()" style="background:rgba(139,92,246,.12);color:#7c3aed;">⚙️ Clientes</button>
+          </div>
+        </div>
+        <div id="dp-prof-cliente-body" style="padding:8px 0;overflow-x:auto;"></div>
+      </div>
     </div>
   </div>
 
@@ -1744,6 +1758,7 @@
       td_meta: [], supr_desp: [], supr_contratos: [], ti_suporte: [],
       ti_backlog_time: [], ti_vazao: [], ti_backlog_evo: [], custo_cc: [], desl_cr: [], desl_tabela: [],
       migracoes: [], custom_kpis: [], user_roles: DEFAULT_USER_ROLES,
+      dp_prof_cliente: [], dp_clientes: ['Petrobras','Globo','Light','Petros','SysManager'],
       gptw: {
   anos: [2021,2022,2023,2024,2025,2026],
   empresa: {
@@ -2321,6 +2336,197 @@
       });
 
       renderCustomCharts('dp');
+      renderProfCliente();
+    }
+
+    function renderProfCliente() {
+      const el = document.getElementById('dp-prof-cliente-body');
+      if (!el) return;
+      const clientes = DATA.dp_clientes || [];
+      const dados = DATA.dp_prof_cliente || [];
+      if (!clientes.length) {
+        el.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Nenhum cliente cadastrado. Clique em ⚙️ Clientes para adicionar.</p>';
+        return;
+      }
+      // Agrupa por ano/mês, filtra pelo ano selecionado
+      const y = currentYear;
+      const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const periodos = dados
+        .filter(r => y === 'all' || r.ano == y)
+        .sort((a, b) => a.ano !== b.ano ? a.ano - b.ano : MESES.indexOf(a.mes) - MESES.indexOf(b.mes));
+
+      if (!periodos.length) {
+        el.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Sem dados para o período selecionado. Clique em ✏️ Editar para inserir.</p>';
+        return;
+      }
+
+      // Tabela: linhas = clientes, colunas = meses/anos
+      let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+      html += '<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);min-width:120px;">Cliente</th><th style="padding:6px 10px;border-bottom:2px solid var(--border);min-width:60px;color:var(--text-muted);">Tipo</th>';
+      periodos.forEach(p => {
+        html += `<th style="padding:6px 8px;border-bottom:2px solid var(--border);text-align:center;white-space:nowrap;">${p.mes}${y==='all'?' '+p.ano:''}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      const tipos = [['clt','CLT','rgba(0,102,179,.8)'],['pj','PJ','rgba(216,61,150,.8)'],['coop','Coop','rgba(8,145,178,.8)']];
+      clientes.forEach((cli, ci) => {
+        tipos.forEach(([key, label, color], ti) => {
+          html += `<tr style="background:${ci%2===0?'var(--surface-alt)':'transparent'}">`;
+          if (ti === 0) html += `<td rowspan="3" style="padding:6px 10px;font-weight:600;border-bottom:1px solid var(--border);vertical-align:middle;">${cli}</td>`;
+          html += `<td style="padding:4px 10px;border-bottom:${ti===2?'1px':'none'} solid var(--border);"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:4px;"></span>${label}</td>`;
+          periodos.forEach(p => {
+            const v = (p.clientes && p.clientes[cli] && p.clientes[cli][key] != null) ? p.clientes[cli][key] : '—';
+            html += `<td style="text-align:center;padding:4px 8px;border-bottom:${ti===2?'1px':'none'} solid var(--border);">${v}</td>`;
+          });
+          html += '</tr>';
+        });
+      });
+
+      // linha de totais
+      html += '<tr style="background:var(--surface-alt);font-weight:700;"><td colspan="2" style="padding:6px 10px;border-top:2px solid var(--border);">Total</td>';
+      periodos.forEach(p => {
+        let tot = 0;
+        clientes.forEach(cli => {
+          if (p.clientes && p.clientes[cli]) {
+            tot += (p.clientes[cli].clt||0) + (p.clientes[cli].pj||0) + (p.clientes[cli].coop||0);
+          }
+        });
+        html += `<td style="text-align:center;padding:6px 8px;border-top:2px solid var(--border);">${tot||'—'}</td>`;
+      });
+      html += '</tr></tbody></table>';
+      el.innerHTML = html;
+    }
+
+    // Modal: editar profissionais por cliente (mês/ano específico)
+    function openModalProfCliente() {
+      if (!checkWritePermission()) return;
+      const clientes = DATA.dp_clientes || [];
+      if (!clientes.length) { alert('Cadastre ao menos um cliente antes de editar.'); return; }
+
+      const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const anoAtual = new Date().getFullYear();
+      const mesAtual = MESES[new Date().getMonth()];
+
+      // Encontra registro existente para o mês/ano
+      const findReg = (m, a) => (DATA.dp_prof_cliente || []).find(r => r.mes === m && r.ano == a);
+
+      let selMes = currentYear !== 'all' ? mesAtual : mesAtual;
+      let selAno = currentYear !== 'all' ? parseInt(currentYear) : anoAtual;
+      let reg = findReg(selMes, selAno) || { mes: selMes, ano: selAno, clientes: {} };
+
+      const buildForm = () => {
+        let opts = '';
+        MESES.forEach(m => { opts += `<option value="${m}" ${m===selMes?'selected':''}>${m}</option>`; });
+        let anosOpts = '';
+        [anoAtual-2, anoAtual-1, anoAtual, anoAtual+1].forEach(a => {
+          anosOpts += `<option value="${a}" ${a==selAno?'selected':''}>${a}</option>`;
+        });
+
+        let linhas = '';
+        clientes.forEach(cli => {
+          const d = reg.clientes[cli] || {};
+          linhas += `<tr>
+            <td style="padding:6px 8px;font-weight:600;">${cli}</td>
+            <td style="padding:4px 6px;"><input type="number" min="0" data-cli="${cli}" data-tipo="clt" value="${d.clt??''}" placeholder="0" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;text-align:center;background:var(--surface);color:var(--text-primary);"></td>
+            <td style="padding:4px 6px;"><input type="number" min="0" data-cli="${cli}" data-tipo="pj" value="${d.pj??''}" placeholder="0" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;text-align:center;background:var(--surface);color:var(--text-primary);"></td>
+            <td style="padding:4px 6px;"><input type="number" min="0" data-cli="${cli}" data-tipo="coop" value="${d.coop??''}" placeholder="0" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;text-align:center;background:var(--surface);color:var(--text-primary);"></td>
+          </tr>`;
+        });
+
+        return `
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+            <label style="font-weight:600;">Mês:</label>
+            <select id="pc-mes" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);">${opts}</select>
+            <label style="font-weight:600;">Ano:</label>
+            <select id="pc-ano" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);">${anosOpts}</select>
+            <button onclick="pcMudaPeriodo()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;">Carregar</button>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border);">Cliente</th>
+              <th style="padding:6px;border-bottom:2px solid var(--border);text-align:center;">CLT</th>
+              <th style="padding:6px;border-bottom:2px solid var(--border);text-align:center;">PJ</th>
+              <th style="padding:6px;border-bottom:2px solid var(--border);text-align:center;">Cooperado</th>
+            </tr></thead>
+            <tbody id="pc-tbody">${linhas}</tbody>
+          </table>`;
+      };
+
+      // Expõe funções globais para o modal
+      window._pcSave = async () => {
+        const inputs = document.querySelectorAll('#pc-tbody input');
+        const newClientes = {};
+        inputs.forEach(inp => {
+          const cli = inp.dataset.cli, tipo = inp.dataset.tipo;
+          if (!newClientes[cli]) newClientes[cli] = {};
+          newClientes[cli][tipo] = inp.value !== '' ? parseInt(inp.value) : null;
+        });
+        const m = document.getElementById('pc-mes').value;
+        const a = parseInt(document.getElementById('pc-ano').value);
+        if (!DATA.dp_prof_cliente) DATA.dp_prof_cliente = [];
+        const idx = DATA.dp_prof_cliente.findIndex(r => r.mes === m && r.ano == a);
+        if (idx >= 0) DATA.dp_prof_cliente[idx].clientes = newClientes;
+        else DATA.dp_prof_cliente.push({ mes: m, ano: a, clientes: newClientes });
+        await saveToServer(DATA);
+        renderDP();
+        closeModal();
+      };
+
+      window.pcMudaPeriodo = () => {
+        selMes = document.getElementById('pc-mes').value;
+        selAno = parseInt(document.getElementById('pc-ano').value);
+        reg = findReg(selMes, selAno) || { mes: selMes, ano: selAno, clientes: {} };
+        document.getElementById('modalBody').innerHTML = buildForm();
+      };
+
+      openGenericModal('Profissionais por Cliente', buildForm(), `window._pcSave()`);
+    }
+
+    // Modal: gerenciar lista de clientes
+    function openGerenciarClientes() {
+      if (!checkWritePermission()) return;
+      const clientes = [...(DATA.dp_clientes || [])];
+
+      const buildForm = () => {
+        let linhas = clientes.map((c, i) => `
+          <div id="cli-row-${i}" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+            <input type="text" id="cli-inp-${i}" value="${c}" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);">
+            <button onclick="document.getElementById('cli-row-${i}').remove()" style="padding:4px 10px;background:rgba(239,68,68,.1);color:#dc2626;border:none;border-radius:6px;cursor:pointer;">✕</button>
+          </div>`).join('');
+        return `
+          <div id="clientes-lista">${linhas}</div>
+          <button onclick="addClienteRow()" style="margin-top:8px;padding:6px 16px;background:rgba(0,102,179,.1);color:var(--primary);border:1px dashed var(--primary);border-radius:6px;cursor:pointer;width:100%;">+ Adicionar cliente</button>`;
+      };
+
+      window.addClienteRow = () => {
+        const lista = document.getElementById('clientes-lista');
+        const i = Date.now();
+        const div = document.createElement('div');
+        div.id = `cli-row-${i}`;
+        div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+        div.innerHTML = `<input type="text" id="cli-inp-${i}" placeholder="Nome do cliente" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);">
+          <button onclick="document.getElementById('cli-row-${i}').remove()" style="padding:4px 10px;background:rgba(239,68,68,.1);color:#dc2626;border:none;border-radius:6px;cursor:pointer;">✕</button>`;
+        lista.appendChild(div);
+      };
+
+      window._cliSave = async () => {
+        const inputs = document.querySelectorAll('#clientes-lista input[type="text"]');
+        const novos = [...inputs].map(i => i.value.trim()).filter(v => v);
+        DATA.dp_clientes = novos;
+        await saveToServer(DATA);
+        renderDP();
+        closeModal();
+      };
+
+      openGenericModal('Gerenciar Clientes', buildForm(), `window._cliSave()`);
+    }
+
+    function openGenericModal(title, contentHtml, saveCall) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = contentHtml;
+      window._genericSaveCall = saveCall;
+      window._inGenericModal = true;
+      document.getElementById('modalOverlay').classList.add('open');
     }
 
     // ── DHO ──
@@ -5827,6 +6033,7 @@
     }
 
     function closeModal() {
+      window._inGenericModal = false;
       document.getElementById('modalOverlay').classList.remove('open');
     }
 
@@ -6025,7 +6232,7 @@
 
     function saveModal() {
       if (!checkWritePermission()) return;
-      
+      if (window._inGenericModal) { window._inGenericModal = false; eval(window._genericSaveCall); return; }
       if (currentEditKey === 'ti_backlog_time') { saveTIBacklogTimeModal(); return; }
       if (currentEditKey === '__desl_tabela__') {
         const inputs = document.querySelectorAll('#modalBody [data-k]');
