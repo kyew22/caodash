@@ -5802,28 +5802,56 @@
 
     function renderGC() {
       const y = currentYear;
-      
-      const efKpi = (DATA.custom_kpis || []).find(k => k.id === 'kpi_gc_efetivo');
+
+      // helper: last two non-null values of a field in a custom KPI array
+      const gcLast2 = (kpiId, field) => {
+        const arr = (DATA[kpiId] || []).filter(r => r[field] != null && !isNaN(r[field]));
+        return [arr.length >= 2 ? arr[arr.length-2][field] : null, arr.length ? arr[arr.length-1][field] : null];
+      };
+      const gcDelta = (prev, curr) => (prev != null && prev !== 0 && curr != null) ? ((curr - prev) / Math.abs(prev) * 100) : null;
+
+      // ── Existing cards ──
+      const efKpi   = (DATA.custom_kpis || []).find(k => k.id === 'kpi_gc_efetivo');
       const gastKpi = (DATA.custom_kpis || []).find(k => k.id === 'kpi_gc_gastos');
-      
-      let efL = null;
+
+      let efL = null, efPrev = null;
       if (efKpi && DATA[efKpi.id]) {
-        efL = last(DATA[efKpi.id], 'f_0');
+        [efPrev, efL] = gcLast2(efKpi.id, 'f_0');
       }
 
-      let gastSum = 0;
+      let gastL = null, gastPrev = null;
       if (gastKpi && DATA[gastKpi.id]) {
-        const yData = DATA[gastKpi.id].filter(r => y === 'all' || r.ano == y);
-        yData.forEach(r => {
-          gastSum += (r.f_0 || 0) + (r.f_1 || 0) + (r.f_2 || 0);
-        });
+        const valid = (DATA[gastKpi.id] || []).filter(r => (r.f_0 != null || r.f_1 != null || r.f_2 != null));
+        if (valid.length) {
+          const sumRow = r => (Number(r.f_0)||0) + (Number(r.f_1)||0) + (Number(r.f_2)||0);
+          gastL    = sumRow(valid[valid.length-1]);
+          gastPrev = valid.length >= 2 ? sumRow(valid[valid.length-2]) : null;
+        }
       }
-      
+
+      // ── New cards: lookup by title ──
+      const custTercKpi = (DATA.custom_kpis || []).find(k => k.title && k.title.toLowerCase().includes('custo serviço terceirizado'));
+      const custRenovKpi = (DATA.custom_kpis || []).find(k => k.title && (k.title.toLowerCase().includes('renovaç') && k.title.toLowerCase().includes('cnpj')));
+
+      let pjL = null, pjPrev = null, coopL = null, coopPrev = null;
+      if (custTercKpi && DATA[custTercKpi.id]) {
+        [pjPrev,   pjL]   = gcLast2(custTercKpi.id, 'f_0');
+        [coopPrev, coopL] = gcLast2(custTercKpi.id, 'f_1');
+      }
+
+      let renovL = null, renovPrev = null;
+      if (custRenovKpi && DATA[custRenovKpi.id]) {
+        [renovPrev, renovL] = gcLast2(custRenovKpi.id, 'f_0');
+      }
+
       const yLabel = y === 'all' ? 'Total' : y;
       document.getElementById('gc-kpis').innerHTML =
-        kpiCard('Terceirizados Ativos', fmtN(efL), 'prof.', null, 'blue') +
-        kpiCard('Investimento ' + yLabel, 'R$ ' + fmtN(gastSum, 0), '', null, 'violet');
-        
+        kpiCard('Terceirizados Ativos',     fmtN(efL),                             'prof.',    gcDelta(efPrev, efL),     'blue')   +
+        kpiCard('Investimento ' + yLabel,   gastL != null ? 'R$ ' + fmtN(gastL) : '—', '',    gcDelta(gastPrev, gastL), 'violet') +
+        kpiCard('Custos PJ',                pjL   != null ? 'R$ ' + fmtN(pjL)   : '—', '',    gcDelta(pjPrev, pjL),     'teal')   +
+        kpiCard('Custo de Cooperados',      coopL != null ? 'R$ ' + fmtN(coopL) : '—', '',    gcDelta(coopPrev, coopL), 'amber')  +
+        kpiCard('Renovações Contratos PJ',  renovL != null ? fmtN(renovL)        : '—', 'contr.', gcDelta(renovPrev, renovL), 'pink');
+
       renderCustomCharts('gc');
     }
 
