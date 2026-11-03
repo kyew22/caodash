@@ -5733,15 +5733,32 @@
 
     function registerCustomKpis() {
       if (DATA.custom_kpis) {
+        const anoAtual = new Date().getFullYear();
+        const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
         DATA.custom_kpis.forEach(kpi => {
           editConfigs[kpi.id] = {
             title: kpi.title,
             data: kpi.id,
             fields: kpi.fields
           };
-          // Só inicializa se ainda não há dados carregados do blob
           if (!DATA[kpi.id] || !Array.isArray(DATA[kpi.id])) {
             DATA[kpi.id] = Array.isArray(kpi.data) ? kpi.data : [];
+          }
+          // Se todos os valores são nulos e o ano é anterior ao corrente, migra para ano atual
+          const rows = DATA[kpi.id];
+          const isMonthly = rows.length > 0 && rows[0].mes !== undefined;
+          if (isMonthly) {
+            const anoMin = Math.min(...rows.map(r => r.ano || 9999));
+            const todosNulos = rows.every(r => kpi.fields.every(f => r[f.k] == null));
+            if (todosNulos && anoMin < anoAtual) {
+              const novos = MESES.map(m => {
+                const row = { mes: m, ano: anoAtual };
+                kpi.fields.forEach(f => { row[f.k] = null; });
+                return row;
+              });
+              DATA[kpi.id] = novos;
+              kpi.data = novos;
+            }
           }
         });
       }
