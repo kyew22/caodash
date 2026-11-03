@@ -1598,6 +1598,30 @@
         </div>
         <div class="chart-body"><canvas id="chartContratos"></canvas></div>
       </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Despesas Administrativas por Escritório</div>
+            <div class="chart-subtitle">Rio de Janeiro · São Caetano · Faria Lima — R$/mês</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('supr_desp_adm')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartDespAdm"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Tipo de Despesa Administrativa</div>
+            <div class="chart-subtitle">Distribuição por categoria (último mês)</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('supr_tipo_desp')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTipoDesp"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -1870,7 +1894,7 @@
       he: [], fp: [], fp_cao: [], humor: [], feedback: [],
       rs_tempo: [], rs_vagas: [], rs_desconto: [], rs_realoc: [],
       td_meta: [], td_sysacademy_trein: [], td_sysacademy_acessos: [], td_sysacademy_ia: [], td_trein_tipo: [],
-      supr_desp: [], supr_contratos: [], ti_suporte: [],
+      supr_desp: [], supr_contratos: [], supr_desp_adm: [], supr_tipo_desp: [], ti_suporte: [],
       ti_backlog_time: [], ti_vazao: [], ti_backlog_evo: [], custo_cc: [], desl_cr: [], desl_tabela: [],
       desl_inic_emp: [], desl_inic_empresa: [],
       ti_notebooks_mes: [], ti_notebooks_tabela: [],
@@ -4996,6 +5020,71 @@
           scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'R$/mês' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + fmtN(v, 0) } } }
         }
       });
+      // ── Despesas Administrativas por Escritório ──
+      const _escritorios = [
+        { k: 'rj',   label: 'Rio de Janeiro', color: 'rgba(0,102,179,.8)'   },
+        { k: 'sc',   label: 'São Caetano',    color: 'rgba(139,92,246,.8)'  },
+        { k: 'fl',   label: 'Faria Lima',     color: 'rgba(16,185,129,.8)'  }
+      ];
+      const admData  = (DATA.supr_desp_adm || []).filter(r => y === 'all' || r.ano == y);
+      const admValid = (DATA.supr_desp_adm || []).filter(r => _escritorios.some(e => r[e.k] != null));
+      const admLast  = admValid.length ? admValid[admValid.length-1] : null;
+      const admPrev  = admValid.length >= 2 ? admValid[admValid.length-2] : null;
+      const admSum   = r => r ? _escritorios.reduce((s, e) => s + nv(r[e.k]), 0) : 0;
+      const admDelta = admPrev ? ((admSum(admLast) - admSum(admPrev)) / Math.abs(admSum(admPrev)) * 100) : null;
+      const admDirDelta = k => {
+        const vl = admLast ? nv(admLast[k]) : 0;
+        const vp = admPrev ? nv(admPrev[k]) : 0;
+        return vp ? ((vl - vp) / Math.abs(vp) * 100) : null;
+      };
+
+      // append desp adm cards to supr-kpis
+      document.getElementById('supr-kpis').innerHTML +=
+        kpiCard('Desp. Adm. Total',   admLast ? 'R$ ' + fmtN(admSum(admLast), 0) : '—', '', admDelta,            'blue')   +
+        kpiCard('Rio de Janeiro',      admLast ? 'R$ ' + fmtN(nv(admLast.rj), 0) : '—', '', admDirDelta('rj'),   'violet') +
+        kpiCard('São Caetano',         admLast ? 'R$ ' + fmtN(nv(admLast.sc), 0) : '—', '', admDirDelta('sc'),   'teal')   +
+        kpiCard('Faria Lima',          admLast ? 'R$ ' + fmtN(nv(admLast.fl), 0) : '—', '', admDirDelta('fl'),   'amber');
+
+      mkChart('chartDespAdm', {
+        type: 'bar',
+        data: {
+          labels: admData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: _escritorios.map(e => ({ label: e.label, data: admData.map(r => nv(r[e.k])), backgroundColor: e.color, borderRadius: 3 }))
+        },
+        options: {
+          ...baseOpts('R$'),
+          scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, title: { display: true, text: 'R$' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + fmtN(v, 0) } } }
+        }
+      });
+
+      // ── Pizza — Tipo de Despesa Administrativa ──
+      const tipoArr  = (DATA.supr_tipo_desp || []).filter(r => y === 'all' || r.ano == y);
+      const tipoLast = tipoArr.length ? tipoArr[tipoArr.length-1] : null;
+      const _tipoAdmLabels = ['Aluguel','Manutenção','Consumíveis','Móveis','Equipamentos','Outros'];
+      const _tipoAdmKeys   = ['aluguel','manutencao','consumiveis','moveis','equipamentos','outros'];
+      const _tipoAdmColors = ['rgba(0,102,179,.8)','rgba(139,92,246,.8)','rgba(16,185,129,.8)','rgba(217,119,6,.8)','rgba(236,72,153,.8)','rgba(156,163,175,.8)'];
+      const _tipoAdmVals   = _tipoAdmKeys.map(k => tipoLast ? (Number(tipoLast[k]) || 0) : 0);
+      const _tipoAdmTotal  = _tipoAdmVals.reduce((a,b) => a+b, 0);
+
+      mkChart('chartTipoDesp', {
+        type: 'pie',
+        data: {
+          labels: _tipoAdmLabels,
+          datasets: [{ data: _tipoAdmVals, backgroundColor: _tipoAdmColors, borderWidth: 2 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { font: { size: 11 }, padding: 10 } },
+            tooltip: { callbacks: { label: ctx => {
+              const val = ctx.raw;
+              const pct = _tipoAdmTotal > 0 ? (val / _tipoAdmTotal * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: R$ ${fmtN(val, 0)} (${pct}%)`;
+            }}}
+          }
+        }
+      });
+
       renderCustomCharts('supr');
     }
 
@@ -6328,6 +6417,8 @@
       ] },
       supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
       supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
+      supr_desp_adm: { title: 'Despesas Administrativas por Escritório', data: 'supr_desp_adm', fields: [{ k: 'rj', label: 'Rio de Janeiro' }, { k: 'sc', label: 'São Caetano' }, { k: 'fl', label: 'Faria Lima' }] },
+      supr_tipo_desp: { title: 'Tipo de Despesa Administrativa', data: 'supr_tipo_desp', fields: [{ k: 'aluguel', label: 'Aluguel' }, { k: 'manutencao', label: 'Manutenção' }, { k: 'consumiveis', label: 'Consumíveis' }, { k: 'moveis', label: 'Móveis' }, { k: 'equipamentos', label: 'Equipamentos' }, { k: 'outros', label: 'Outros' }] },
       ti_suporte:        { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] },
       ti_vazao:          { title: 'Vazão Consolidada', data: 'ti_vazao', fields: [{ k: 'novas', label: 'Novas' }, { k: 'entregues', label: 'Entregues' }] },
       ti_backlog_evo:    { title: 'Evolução Backlog Ativo', data: 'ti_backlog_evo', fields: [{ k: 'v', label: 'Backlog Total' }] },
