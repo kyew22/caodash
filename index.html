@@ -4759,27 +4759,59 @@
     // ── SUPR ──
     function renderSUPR() {
       const y = currentYear;
+      const nv = v => (v != null && !isNaN(v) ? Number(v) : 0);
+      const _dirs = [
+        { k: 'fin', label: 'CFO (Financeira)',   color: 'rgba(139,92,246,.75)'  },
+        { k: 'corp', label: 'CAO (Corporativa)',  color: 'rgba(0,102,179,.75)'   },
+        { k: 'mkt', label: 'CMO (Marketing)',     color: 'rgba(216,61,150,.75)'  },
+        { k: 'neg', label: 'CBO (Negócios)',      color: 'rgba(217,119,6,.75)'   },
+        { k: 'cto', label: 'CTO (Tecnologia)',    color: 'rgba(16,185,129,.75)'  }
+      ];
+
       const dData = DATA.supr_desp.filter(r => y === 'all' || r.ano == y);
-      const totalDesp = dData.reduce((s, r) => s + r.fin + r.corp + r.mkt + r.neg, 0);
+      // último e penúltimo mês com pelo menos algum valor
+      const dValid = DATA.supr_desp.filter(r => _dirs.some(d => r[d.k] != null));
+      const dLast  = dValid.length ? dValid[dValid.length - 1] : null;
+      const dPrev  = dValid.length >= 2 ? dValid[dValid.length - 2] : null;
+      const sumRow = r => r ? _dirs.reduce((s, d) => s + nv(r[d.k]), 0) : 0;
+      const totalDesp = dData.reduce((s, r) => s + sumRow(r), 0);
+      const totalDespLast = sumRow(dLast);
+      const totalDespPrev = sumRow(dPrev);
+      const despDelta = totalDespPrev ? ((totalDespLast - totalDespPrev) / Math.abs(totalDespPrev) * 100) : null;
+
+      // per-diretoria delta (último vs penúltimo)
+      const dirDelta = k => {
+        const vl = dLast ? nv(dLast[k]) : 0;
+        const vp = dPrev ? nv(dPrev[k]) : 0;
+        return vp ? ((vl - vp) / Math.abs(vp) * 100) : null;
+      };
+
       const cData = DATA.supr_contratos.filter(r => y === 'all' || r.ano == y);
-      const lastC = cData[cData.length - 1];
-      const totalContr = lastC ? lastC.fin + lastC.corp + lastC.mkt + lastC.neg : 0;
+      const cValid = DATA.supr_contratos.filter(r => _dirs.some(d => r[d.k] != null));
+      const cLast  = cValid.length ? cValid[cValid.length - 1] : null;
+      const cPrev  = cValid.length >= 2 ? cValid[cValid.length - 2] : null;
+      const totalContr = sumRow(cLast);
+      const totalContrPrev = sumRow(cPrev);
+      const contrDelta = totalContrPrev ? ((totalContr - totalContrPrev) / Math.abs(totalContrPrev) * 100) : null;
+
+      // maior gasto (último mês)
+      const maiorDir = dLast ? _dirs.reduce((mx, d) => nv(dLast[d.k]) > nv(dLast[mx.k]) ? d : mx, _dirs[0]) : null;
 
       document.getElementById('supr-kpis').innerHTML =
-        kpiCard('Desp. Viagem Total', 'R$ ' + fmtN(totalDesp, 0), '', null, 'amber') +
-        kpiCard('Contratos Vigentes', 'R$ ' + fmtN(totalContr, 0), '/mês', null, 'blue') +
-        kpiCard('Maior Gasto', 'Negócios', '', null, 'pink');
+        kpiCard('Desp. Viagem Total', 'R$ ' + fmtN(totalDespLast, 0), '', despDelta, 'amber') +
+        kpiCard('Contratos Vigentes', 'R$ ' + fmtN(totalContr, 0), '/mês', contrDelta, 'blue') +
+        kpiCard('Maior Gasto', maiorDir ? maiorDir.label.split(' ')[0] : '—', '', null, 'pink') +
+        kpiCard('CFO (Financeira)',  dLast ? 'R$ ' + fmtN(nv(dLast.fin), 0) : '—', '', dirDelta('fin'),  'violet') +
+        kpiCard('CAO (Corporativa)', dLast ? 'R$ ' + fmtN(nv(dLast.corp), 0) : '—', '', dirDelta('corp'), 'blue') +
+        kpiCard('CMO (Marketing)',   dLast ? 'R$ ' + fmtN(nv(dLast.mkt), 0) : '—', '', dirDelta('mkt'),  'pink') +
+        kpiCard('CBO (Negócios)',    dLast ? 'R$ ' + fmtN(nv(dLast.neg), 0) : '—', '', dirDelta('neg'),  'amber') +
+        kpiCard('CTO (Tecnologia)',  dLast ? 'R$ ' + fmtN(nv(dLast.cto), 0) : '—', '', dirDelta('cto'),  'teal');
 
       mkChart('chartDespViagem', {
         type: 'bar',
         data: {
           labels: dData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
-          datasets: [
-            { label: 'Financeira', data: dData.map(r => r.fin), backgroundColor: 'rgba(139,92,246,.75)', borderRadius: 3 },
-            { label: 'Corporativa', data: dData.map(r => r.corp), backgroundColor: 'rgba(0,102,179,.75)', borderRadius: 3 },
-            { label: 'Marketing', data: dData.map(r => r.mkt), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 3 },
-            { label: 'Negócios', data: dData.map(r => r.neg), backgroundColor: 'rgba(217,119,6,.75)', borderRadius: 3 }
-          ]
+          datasets: _dirs.map(d => ({ label: d.label.split(' ')[0], data: dData.map(r => nv(r[d.k])), backgroundColor: d.color, borderRadius: 3 }))
         },
         options: {
           ...baseOpts('R$'),
@@ -4791,12 +4823,7 @@
         type: 'bar',
         data: {
           labels: cData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
-          datasets: [
-            { label: 'Financeira', data: cData.map(r => r.fin), backgroundColor: 'rgba(139,92,246,.75)', borderRadius: 3 },
-            { label: 'Corporativa', data: cData.map(r => r.corp), backgroundColor: 'rgba(0,102,179,.75)', borderRadius: 3 },
-            { label: 'Marketing', data: cData.map(r => r.mkt), backgroundColor: 'rgba(216,61,150,.75)', borderRadius: 3 },
-            { label: 'Negócios', data: cData.map(r => r.neg), backgroundColor: 'rgba(217,119,6,.75)', borderRadius: 3 }
-          ]
+          datasets: _dirs.map(d => ({ label: d.label.split(' ')[0], data: cData.map(r => nv(r[d.k])), backgroundColor: d.color, borderRadius: 3 }))
         },
         options: {
           ...baseOpts('R$/mês'),
@@ -5940,8 +5967,8 @@
       rs_desconto: { title: 'Desconto R&S', data: 'rs_desconto', fields: [{ k: 'desconto', label: 'Desconto (0.00–1.00)' }] },
       rs_realoc: { title: 'Realocações', data: 'rs_realoc', fields: [{ k: 'ent', label: 'Entrada' }, { k: 'real', label: 'Realocados' }, { k: 'desl', label: 'Desligados' }] },
       td_meta: { title: 'Meta T&D', data: 'td_meta', fields: [{ k: 'cumpriu', label: 'Cumpriu' }, { k: 'parcial', label: 'Parcial' }, { k: 'nao', label: 'Não Registrou' }] },
-      supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'Financeira' }, { k: 'corp', label: 'Corporativa' }, { k: 'mkt', label: 'Marketing' }, { k: 'neg', label: 'Negócios' }] },
-      supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'Financeira' }, { k: 'corp', label: 'Corporativa' }, { k: 'mkt', label: 'Marketing' }, { k: 'neg', label: 'Negócios' }] },
+      supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
+      supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
       ti_suporte:      { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] },
       ti_vazao:        { title: 'Vazão Consolidada', data: 'ti_vazao', fields: [{ k: 'novas', label: 'Novas' }, { k: 'entregues', label: 'Entregues' }] },
       ti_backlog_evo:  { title: 'Evolução Backlog Ativo', data: 'ti_backlog_evo', fields: [{ k: 'v', label: 'Backlog Total' }] },
