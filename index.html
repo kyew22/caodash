@@ -1515,6 +1515,54 @@
         </div>
         <div class="chart-body"><canvas id="chartTDPct"></canvas></div>
       </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Treinamentos Ativos — SysAcademy</div>
+            <div class="chart-subtitle">Quantidade de treinamentos ativos por Mês/Ano</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('td_sysacademy_trein')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDTrein"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Acessos ao SysAcademy</div>
+            <div class="chart-subtitle">Quantidade de acessos por Mês/Ano</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('td_sysacademy_acessos')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDAcessos"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Treinamentos Relacionados a IA</div>
+            <div class="chart-subtitle">Quantidade de treinamentos de IA por Mês/Ano</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('td_sysacademy_ia')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDIA"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Treinamentos por Tipo</div>
+            <div class="chart-subtitle">Distribuição por categoria (último mês)</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('td_trein_tipo')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTDTipo"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -1821,7 +1869,8 @@
       contrat: [], demit: [], efetivo: [], efTipo: [], rotat: [],
       he: [], fp: [], fp_cao: [], humor: [], feedback: [],
       rs_tempo: [], rs_vagas: [], rs_desconto: [], rs_realoc: [],
-      td_meta: [], supr_desp: [], supr_contratos: [], ti_suporte: [],
+      td_meta: [], td_sysacademy_trein: [], td_sysacademy_acessos: [], td_sysacademy_ia: [], td_trein_tipo: [],
+      supr_desp: [], supr_contratos: [], ti_suporte: [],
       ti_backlog_time: [], ti_vazao: [], ti_backlog_evo: [], custo_cc: [], desl_cr: [], desl_tabela: [],
       desl_inic_emp: [], desl_inic_empresa: [],
       ti_notebooks_mes: [], ti_notebooks_tabela: [],
@@ -4759,10 +4808,24 @@
       const pctLast = last_ && totalLast > 0 ? (last_.cumpriu / totalLast * 100).toFixed(0) : 0;
       const mesLabel = last_ ? ` (${last_.mes})` : '';
 
+      // SysAcademy series helpers
+      const tdLast2 = (arr) => {
+        const v = (arr || []).filter(r => r.v != null && !isNaN(r.v));
+        return [v.length >= 2 ? v[v.length-2].v : null, v.length ? v[v.length-1].v : null];
+      };
+      const tdDelta = (prev, curr) => (prev && prev !== 0) ? ((curr - prev) / Math.abs(prev) * 100) : null;
+
+      const [tPrev, tLast] = tdLast2(DATA.td_sysacademy_trein);
+      const [aPrev, aLast] = tdLast2(DATA.td_sysacademy_acessos);
+      const [iPrev, iLast] = tdLast2(DATA.td_sysacademy_ia);
+
       document.getElementById('td-kpis').innerHTML =
         kpiCard('Meta Cumprida' + mesLabel, pctLast, '%', null, 'green') +
         kpiCard('Cumpriram' + mesLabel, fmtN(last_ ? last_.cumpriu : 0), '', null, 'blue') +
-        kpiCard('Não Registrou' + mesLabel, fmtN(last_ ? last_.nao : 0), '', null, 'amber');
+        kpiCard('Não Registrou' + mesLabel, fmtN(last_ ? last_.nao : 0), '', null, 'amber') +
+        kpiCard('Treinamentos Ativos', tLast != null ? fmtN(tLast) : '—', 'trein.', tdDelta(tPrev, tLast), 'violet') +
+        kpiCard('Acessos SysAcademy', aLast != null ? fmtN(aLast) : '—', 'acessos', tdDelta(aPrev, aLast), 'teal') +
+        kpiCard('Treinamentos IA', iLast != null ? fmtN(iLast) : '—', 'trein.', tdDelta(iPrev, iLast), 'pink');
 
       mkChart('chartTDMeta', {
         type: 'bar',
@@ -4795,6 +4858,66 @@
         },
         options: baseOpts('%')
       });
+      // SysAcademy — Treinamentos Ativos
+      const tdTreinData = (DATA.td_sysacademy_trein || []).filter(r => y === 'all' || r.ano == y);
+      mkChart('chartTDTrein', {
+        type: 'bar',
+        data: {
+          labels: tdTreinData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Treinamentos', data: tdTreinData.map(r => r.v), backgroundColor: 'rgba(139,92,246,.8)', borderRadius: 4 }]
+        },
+        options: baseOpts('Treinamentos')
+      });
+
+      // SysAcademy — Acessos
+      const tdAcessosData = (DATA.td_sysacademy_acessos || []).filter(r => y === 'all' || r.ano == y);
+      mkChart('chartTDAcessos', {
+        type: 'line',
+        data: {
+          labels: tdAcessosData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Acessos', data: tdAcessosData.map(r => r.v), borderColor: 'rgba(13,148,136,1)', backgroundColor: 'rgba(13,148,136,.1)', fill: true, tension: .4, pointRadius: 5 }]
+        },
+        options: baseOpts('Acessos')
+      });
+
+      // SysAcademy — Treinamentos IA
+      const tdIAData = (DATA.td_sysacademy_ia || []).filter(r => y === 'all' || r.ano == y);
+      mkChart('chartTDIA', {
+        type: 'bar',
+        data: {
+          labels: tdIAData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Treinamentos IA', data: tdIAData.map(r => r.v), backgroundColor: 'rgba(236,72,153,.8)', borderRadius: 4 }]
+        },
+        options: baseOpts('Treinamentos')
+      });
+
+      // Pizza — Treinamentos por Tipo (último mês com dados)
+      const tdTipoArr = (DATA.td_trein_tipo || []).filter(r => y === 'all' || r.ano == y);
+      const tdTipoLast = tdTipoArr.length ? tdTipoArr[tdTipoArr.length - 1] : null;
+      const _tipoLabels = ['Tecnologia','Gestão','IA','Financeiro','Marketing','Comercial'];
+      const _tipoKeys   = ['tecnologia','gestao','ia','financeiro','marketing','comercial'];
+      const _tipoColors = ['rgba(99,102,241,.8)','rgba(217,119,6,.8)','rgba(236,72,153,.8)','rgba(16,185,129,.8)','rgba(59,130,246,.8)','rgba(245,158,11,.8)'];
+      const _tipoVals   = _tipoKeys.map(k => tdTipoLast ? (Number(tdTipoLast[k]) || 0) : 0);
+      const _tipoTotal  = _tipoVals.reduce((a,b) => a+b, 0);
+      mkChart('chartTDTipo', {
+        type: 'pie',
+        data: {
+          labels: _tipoLabels,
+          datasets: [{ data: _tipoVals, backgroundColor: _tipoColors, borderWidth: 2 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { font: { size: 11 }, padding: 10 } },
+            tooltip: { callbacks: { label: ctx => {
+              const val = ctx.raw;
+              const pct = _tipoTotal > 0 ? (val / _tipoTotal * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${val} (${pct}%)`;
+            }}}
+          }
+        }
+      });
+
       renderCustomCharts('td');
     }
 
@@ -6168,6 +6291,13 @@
       rs_desconto: { title: 'Desconto R&S', data: 'rs_desconto', fields: [{ k: 'desconto', label: 'Desconto (0.00–1.00)' }] },
       rs_realoc: { title: 'Realocações', data: 'rs_realoc', fields: [{ k: 'ent', label: 'Entrada' }, { k: 'real', label: 'Realocados' }, { k: 'desl', label: 'Desligados' }] },
       td_meta: { title: 'Meta T&D', data: 'td_meta', fields: [{ k: 'cumpriu', label: 'Cumpriu' }, { k: 'parcial', label: 'Parcial' }, { k: 'nao', label: 'Não Registrou' }] },
+      td_sysacademy_trein:   { title: 'Treinamentos Ativos SysAcademy', data: 'td_sysacademy_trein',   fields: [{ k: 'v', label: 'Qtde Treinamentos' }] },
+      td_sysacademy_acessos: { title: 'Acessos ao SysAcademy',          data: 'td_sysacademy_acessos', fields: [{ k: 'v', label: 'Acessos' }] },
+      td_sysacademy_ia:      { title: 'Treinamentos de IA SysAcademy',  data: 'td_sysacademy_ia',      fields: [{ k: 'v', label: 'Qtde Treinamentos IA' }] },
+      td_trein_tipo: { title: 'Treinamentos por Tipo', data: 'td_trein_tipo', fields: [
+        { k: 'tecnologia', label: 'Tecnologia' }, { k: 'gestao', label: 'Gestão' }, { k: 'ia', label: 'IA' },
+        { k: 'financeiro', label: 'Financeiro' }, { k: 'marketing', label: 'Marketing' }, { k: 'comercial', label: 'Comercial' }
+      ] },
       supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
       supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
       ti_suporte:        { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] },
