@@ -2613,16 +2613,19 @@
       const fbData = DATA.feedback.filter(r => (y === 'all' || r.ano == y) && r.v != null);
       const fbL = fbData.length ? fbData[fbData.length - 1].v : null;
 
-      // Desligamento por iniciativa
-      const dislEmpArr = (DATA.desl_inic_emp || []).filter(r => r.v != null && !isNaN(r.v));
-      const dislEmpL = dislEmpArr.length ? dislEmpArr[dislEmpArr.length - 1].v : null;
-      const dislEmpPrev = dislEmpArr.length >= 2 ? dislEmpArr[dislEmpArr.length - 2].v : null;
-      const dislEmpDelta = dislEmpPrev && dislEmpPrev !== 0 ? ((dislEmpL - dislEmpPrev) / Math.abs(dislEmpPrev) * 100) : null;
+      // Desligamento por iniciativa — lê do KPI customizado "Iniciativa dos Desligamentos"
+      const _iniciativaKpi = (DATA.custom_kpis || []).find(k => k.title === 'Iniciativa dos Desligamentos');
+      const _iniciativaArr = _iniciativaKpi ? (DATA[_iniciativaKpi.id] || []).filter(r => r.f_0 != null || r.f_1 != null) : [];
+      const _iniciativaLast = _iniciativaArr.length ? _iniciativaArr[_iniciativaArr.length - 1] : null;
+      const _iniciativaPrev = _iniciativaArr.length >= 2 ? _iniciativaArr[_iniciativaArr.length - 2] : null;
 
-      const dislEmpresaArr = (DATA.desl_inic_empresa || []).filter(r => r.v != null && !isNaN(r.v));
-      const dislEmpresaL = dislEmpresaArr.length ? dislEmpresaArr[dislEmpresaArr.length - 1].v : null;
-      const dislEmpresaPrev = dislEmpresaArr.length >= 2 ? dislEmpresaArr[dislEmpresaArr.length - 2].v : null;
+      const dislEmpresaL = _iniciativaLast ? _iniciativaLast.f_0 : null;
+      const dislEmpresaPrev = _iniciativaPrev ? _iniciativaPrev.f_0 : null;
       const dislEmpresaDelta = dislEmpresaPrev && dislEmpresaPrev !== 0 ? ((dislEmpresaL - dislEmpresaPrev) / Math.abs(dislEmpresaPrev) * 100) : null;
+
+      const dislEmpL = _iniciativaLast ? _iniciativaLast.f_1 : null;
+      const dislEmpPrev = _iniciativaPrev ? _iniciativaPrev.f_1 : null;
+      const dislEmpDelta = dislEmpPrev && dislEmpPrev !== 0 ? ((dislEmpL - dislEmpPrev) / Math.abs(dislEmpPrev) * 100) : null;
 
       const yLabel = y === 'all' ? 'Todos os Anos' : y;
       document.getElementById('humor-subtitle').textContent = 'Distribuição mensal — ' + yLabel;
@@ -2662,24 +2665,21 @@
         },
         options: baseOpts('Qtde')
       });
-      // Desl. por iniciativa do empregado
-      const dislEmpData = (DATA.desl_inic_emp || []).filter(r => y === 'all' || r.ano == y);
+      // Desl. por iniciativa (empregado + empresa) — do KPI customizado
+      const _iniciativaFiltrada = (_iniciativaKpi ? (DATA[_iniciativaKpi.id] || []) : []).filter(r => y === 'all' || r.ano == y);
       mkChart('chartDislEmp', {
         type: 'bar',
         data: {
-          labels: dislEmpData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
-          datasets: [{ label: 'Empregado', data: dislEmpData.map(r => r.v), backgroundColor: 'rgba(245,158,11,.8)', borderRadius: 4 }]
+          labels: _iniciativaFiltrada.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Empregado', data: _iniciativaFiltrada.map(r => r.f_1), backgroundColor: 'rgba(216,61,150,.8)', borderRadius: 4 }]
         },
         options: baseOpts('Qtde')
       });
-
-      // Desl. por iniciativa da empresa
-      const dislEmpresaData = (DATA.desl_inic_empresa || []).filter(r => y === 'all' || r.ano == y);
       mkChart('chartDislEmpresa', {
         type: 'bar',
         data: {
-          labels: dislEmpresaData.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
-          datasets: [{ label: 'Empresa', data: dislEmpresaData.map(r => r.v), backgroundColor: 'rgba(216,61,150,.8)', borderRadius: 4 }]
+          labels: _iniciativaFiltrada.map(r => r.mes + (y === 'all' ? ' ' + r.ano : '')),
+          datasets: [{ label: 'Empresa', data: _iniciativaFiltrada.map(r => r.f_0), backgroundColor: 'rgba(0,102,179,.8)', borderRadius: 4 }]
         },
         options: baseOpts('Qtde')
       });
