@@ -1612,6 +1612,46 @@
         </div>
         <div class="chart-body"><canvas id="chartTIBacklogEvo"></canvas></div>
       </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Notebooks Acumulado por Mês</div>
+            <div class="chart-subtitle">Quantidade de notebooks em uso</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openModal('ti_notebooks_mes')">✏️ Editar</button>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="chartTINotebooksMes"></canvas></div>
+      </div>
+
+      <div class="chart-card" style="grid-column:1/-1;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Notebooks da Empresa</div>
+            <div class="chart-subtitle">Cadastro de notebooks por colaborador</div>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-edit" onclick="openTINotebookModal()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;">+ Adicionar</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:var(--blue);color:white;">
+                <th style="padding:8px 10px;text-align:left;font-weight:700;">Nome</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;">E-mail</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;">Cliente</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;">Data Cessão</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;">Data Aquisição</th>
+                <th style="padding:8px 10px;text-align:center;font-weight:700;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ti-notebooks-tabela-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1782,6 +1822,7 @@
       td_meta: [], supr_desp: [], supr_contratos: [], ti_suporte: [],
       ti_backlog_time: [], ti_vazao: [], ti_backlog_evo: [], custo_cc: [], desl_cr: [], desl_tabela: [],
       desl_inic_emp: [], desl_inic_empresa: [],
+      ti_notebooks_mes: [], ti_notebooks_tabela: [],
       migracoes: [], custom_kpis: [], user_roles: DEFAULT_USER_ROLES,
       dp_prof_cliente: [], dp_clientes: ['Petrobras','Globo','Light','Petros','SysManager'],
       gptw: {
@@ -4836,15 +4877,28 @@
     // ── TI ──
     function renderTI() {
       const y = currentYear;
-      const tiData = DATA.ti_suporte.filter(r => y === 'all' || r.ano == y);
-      const l = tiData.length ? tiData[tiData.length - 1].v : null;
-      const avgY = tiData.length ? (tiData.reduce((s, r) => s + (r.v || 0), 0) / tiData.length).toFixed(0) : 0;
+      const tiValid = DATA.ti_suporte.filter(r => r.v != null && !isNaN(r.v));
+      const tiData  = DATA.ti_suporte.filter(r => y === 'all' || r.ano == y);
+      const l       = tiValid.length ? tiValid[tiValid.length - 1].v : null;
+      const lPrev   = tiValid.length >= 2 ? tiValid[tiValid.length - 2].v : null;
+      const tickDelta = lPrev && lPrev !== 0 ? ((l - lPrev) / Math.abs(lPrev) * 100) : null;
+      const avgY    = tiData.length ? (tiData.reduce((s, r) => s + (r.v || 0), 0) / tiData.length).toFixed(0) : 0;
+      const picoY   = tiData.reduce((mx, r) => Math.max(mx, r.v || 0), 0);
+
+      // Notebooks
+      const nbMesArr = (DATA.ti_notebooks_mes || []).filter(r => r.v != null && !isNaN(r.v));
+      const nbLast   = nbMesArr.length ? nbMesArr[nbMesArr.length - 1].v : null;
+      const nbPrev   = nbMesArr.length >= 2 ? nbMesArr[nbMesArr.length - 2].v : null;
+      const nbDelta  = nbPrev && nbPrev !== 0 ? ((nbLast - nbPrev) / Math.abs(nbPrev) * 100) : null;
+      const nbTotal  = (DATA.ti_notebooks_tabela || []).length;
 
       const yLabel = y === 'all' ? 'Total' : y;
       document.getElementById('ti-kpis').innerHTML =
-        kpiCard('Tickets (último mês)', fmtN(l), 'tickets', null, 'blue') +
+        kpiCard('Tickets (último mês)', fmtN(l), 'tickets', tickDelta, 'blue') +
         kpiCard('Média Mensal ' + yLabel, fmtN(avgY), 'tickets', null, 'teal') +
-        kpiCard('Pico ' + yLabel, fmtN(tiData.reduce((max, r) => Math.max(max, r.v || 0), 0)), 'tickets', null, 'amber');
+        kpiCard('Pico ' + yLabel, fmtN(picoY), 'tickets', null, 'amber') +
+        kpiCard('Notebooks Ativos', fmtN(nbTotal), 'un.', null, 'violet') +
+        kpiCard('Notebooks (mês)', nbLast != null ? fmtN(nbLast) : '—', 'un.', nbDelta, 'pink');
 
       mkChart('chartTISuport', {
         type: 'line',
@@ -4927,7 +4981,90 @@
         }
       });
 
+      // Notebooks acumulado por mês
+      const nbMesChart = (DATA.ti_notebooks_mes || []).filter(r => y === 'all' || r.ano == y);
+      mkChart('chartTINotebooksMes', {
+        type: 'line',
+        data: {
+          labels: nbMesChart.map(r => r.mes + (y === 'all' ? '/' + r.ano : '')),
+          datasets: [{ label: 'Notebooks', data: nbMesChart.map(r => r.v), borderColor: 'rgba(139,92,246,1)', backgroundColor: 'rgba(139,92,246,.08)', fill: true, tension: .3, pointRadius: 3 }]
+        },
+        options: baseOpts('Unidades')
+      });
+
+      // Tabela de notebooks
+      renderTINotebooksTabela();
       renderCustomCharts('ti');
+    }
+
+    function renderTINotebooksTabela() {
+      const el = document.getElementById('ti-notebooks-tabela-body');
+      if (!el) return;
+      const rows = DATA.ti_notebooks_tabela || [];
+      if (!rows.length) {
+        el.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:16px;font-size:12px;">Nenhum notebook cadastrado.</td></tr>';
+        return;
+      }
+      const thS = 'padding:6px 10px;font-size:12px;';
+      el.innerHTML = rows.map((r, i) => {
+        const bg = i % 2 ? 'var(--gray-50)' : 'white';
+        return `<tr style="background:${bg};border-bottom:1px solid var(--gray-100);">
+          <td style="${thS}">${r.nome || '—'}</td>
+          <td style="${thS}">${r.email || '—'}</td>
+          <td style="${thS}">${r.cliente || '—'}</td>
+          <td style="${thS}">${r.dt_cessao || '—'}</td>
+          <td style="${thS}">${r.dt_aquisicao || '—'}</td>
+          <td style="${thS};text-align:center;">
+            <button onclick="editTINotebook(${i})" style="background:none;border:none;cursor:pointer;font-size:13px;" title="Editar">✏️</button>
+            <button onclick="deleteTINotebook(${i})" style="background:none;border:none;cursor:pointer;font-size:13px;" title="Excluir">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openTINotebookModal(idx = null) {
+      const r = idx != null ? (DATA.ti_notebooks_tabela || [])[idx] : {};
+      const html = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div><label style="font-size:11px;font-weight:600;">Nome</label><input id="nb_nome" class="modal-input" value="${r.nome||''}" placeholder="Nome do colaborador"></div>
+          <div><label style="font-size:11px;font-weight:600;">E-mail</label><input id="nb_email" class="modal-input" value="${r.email||''}" placeholder="email@empresa.com"></div>
+          <div><label style="font-size:11px;font-weight:600;">Cliente</label><input id="nb_cliente" class="modal-input" value="${r.cliente||''}" placeholder="Nome do cliente"></div>
+          <div><label style="font-size:11px;font-weight:600;">Data da Cessão</label><input id="nb_dt_cessao" class="modal-input" type="date" value="${r.dt_cessao||''}"></div>
+          <div><label style="font-size:11px;font-weight:600;">Data de Aquisição</label><input id="nb_dt_aquisicao" class="modal-input" type="date" value="${r.dt_aquisicao||''}"></div>
+        </div>
+        <input type="hidden" id="nb_idx" value="${idx != null ? idx : ''}">`;
+      openGenericModal('Notebook', html, 'saveTINotebook()');
+    }
+
+    function saveTINotebook() {
+      if (!checkWritePermission()) return;
+      const idx = document.getElementById('nb_idx').value;
+      const obj = {
+        nome:         document.getElementById('nb_nome').value.trim(),
+        email:        document.getElementById('nb_email').value.trim(),
+        cliente:      document.getElementById('nb_cliente').value.trim(),
+        dt_cessao:    document.getElementById('nb_dt_cessao').value,
+        dt_aquisicao: document.getElementById('nb_dt_aquisicao').value
+      };
+      if (!DATA.ti_notebooks_tabela) DATA.ti_notebooks_tabela = [];
+      if (idx !== '') DATA.ti_notebooks_tabela[parseInt(idx)] = obj;
+      else DATA.ti_notebooks_tabela.push(obj);
+      document.getElementById('modalOverlay').classList.remove('open');
+      renderTINotebooksTabela();
+      document.getElementById('ti-kpis').querySelector && renderTI();
+      saveToServer(DATA);
+      showToast('Notebook salvo.', 'success');
+    }
+
+    function editTINotebook(i) { openTINotebookModal(i); }
+
+    function deleteTINotebook(i) {
+      if (!checkWritePermission()) return;
+      if (!confirm('Excluir este notebook?')) return;
+      DATA.ti_notebooks_tabela.splice(i, 1);
+      renderTINotebooksTabela();
+      saveToServer(DATA);
+      showToast('Notebook removido.', 'success');
     }
 
     // ── MIGRA ──
@@ -5969,9 +6106,10 @@
       td_meta: { title: 'Meta T&D', data: 'td_meta', fields: [{ k: 'cumpriu', label: 'Cumpriu' }, { k: 'parcial', label: 'Parcial' }, { k: 'nao', label: 'Não Registrou' }] },
       supr_desp: { title: 'Despesas de Viagem', data: 'supr_desp', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
       supr_contratos: { title: 'Contratos Vigentes', data: 'supr_contratos', fields: [{ k: 'fin', label: 'CFO (Financeira)' }, { k: 'corp', label: 'CAO (Corporativa)' }, { k: 'mkt', label: 'CMO (Marketing)' }, { k: 'neg', label: 'CBO (Negócios)' }, { k: 'cto', label: 'CTO (Tecnologia)' }] },
-      ti_suporte:      { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] },
-      ti_vazao:        { title: 'Vazão Consolidada', data: 'ti_vazao', fields: [{ k: 'novas', label: 'Novas' }, { k: 'entregues', label: 'Entregues' }] },
-      ti_backlog_evo:  { title: 'Evolução Backlog Ativo', data: 'ti_backlog_evo', fields: [{ k: 'v', label: 'Backlog Total' }] },
+      ti_suporte:        { title: 'Tickets de Suporte TI', data: 'ti_suporte', fields: [{ k: 'v', label: 'Tickets' }] },
+      ti_vazao:          { title: 'Vazão Consolidada', data: 'ti_vazao', fields: [{ k: 'novas', label: 'Novas' }, { k: 'entregues', label: 'Entregues' }] },
+      ti_backlog_evo:    { title: 'Evolução Backlog Ativo', data: 'ti_backlog_evo', fields: [{ k: 'v', label: 'Backlog Total' }] },
+      ti_notebooks_mes:  { title: 'Notebooks Acumulado', data: 'ti_notebooks_mes', fields: [{ k: 'v', label: 'Notebooks (un.)' }] },
       rs_bonus: { title: 'Bônus Recrutadores', data: 'rs_bonus' },
       custo_cc: { title: 'Custo de Pessoal por CC', data: 'custo_cc', fields: [
         { k: 'CAO', label: 'CAO (3000)' }, { k: 'SW', label: 'SW (3320)' }, { k: 'HW', label: 'HW (3310)' },
