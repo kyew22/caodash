@@ -5382,7 +5382,8 @@
           : '';
 
         if (kpi.chartType === 'table') {
-          const anos = [...new Set(allRows.map(r => r.ano))].sort();
+          const temDadosRow = r => kpi.fields.some(f => r[f.k] != null);
+          const anos = [...new Set(allRows.filter(temDadosRow).map(r => r.ano))].sort((a,b)=>b-a);
           const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
           const anoOpts = `<option value="">Todos</option>${anos.map(a=>`<option>${a}</option>`).join('')}`;
           const mesOpts = `<option value="">Todos</option>${meses.map(m=>`<option>${m}</option>`).join('')}`;
@@ -5667,40 +5668,54 @@
       const tbody = document.getElementById('tbl_body_' + kpiId);
       if (!thead || !tbody) return;
 
+      const MESES_ORD = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const allRows = DATA[kpiId] || [];
       const isYearOnly = allRows.length > 0 && allRows[0].mes === undefined;
       const anoSel = (document.getElementById('tf_ano_' + kpiId) || {}).value || '';
       const mesSel = (document.getElementById('tf_mes_' + kpiId) || {}).value || '';
+      const temDados = r => kpi.fields.some(f => r[f.k] != null);
 
-      const rows = allRows.filter(r => {
+      // Filtra: remove linhas sem nenhum dado E aplica filtros de período
+      let rows = allRows.filter(r => {
+        if (!temDados(r)) return false; // exclui linhas totalmente nulas
         if (anoSel && String(r.ano) !== String(anoSel)) return false;
         if (!isYearOnly && mesSel && r.mes !== mesSel) return false;
         return true;
       });
 
+      // Ordena: ano decrescente, mês decrescente dentro do ano
+      rows = [...rows].sort((a, b) => {
+        if (b.ano !== a.ano) return b.ano - a.ano;
+        return MESES_ORD.indexOf(b.mes) - MESES_ORD.indexOf(a.mes);
+      });
+
       const thStyle = 'padding:7px 10px;background:var(--blue);color:white;font-size:11px;white-space:nowrap;text-align:left;font-weight:700;';
-      const periodHeader = isYearOnly ? 'Ano' : 'Mês/Ano';
+      const colsAntes = isYearOnly
+        ? `<th style="${thStyle}">Ano</th>`
+        : `<th style="${thStyle}">Mês</th><th style="${thStyle}">Ano</th>`;
       thead.innerHTML = `<tr>
-        <th style="${thStyle}">${periodHeader}</th>
+        ${colsAntes}
         ${kpi.fields.map(f => `<th style="${thStyle}">${f.label}</th>`).join('')}
       </tr>`;
 
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="${kpi.fields.length + 1}" style="text-align:center;color:var(--gray-400);padding:20px;font-size:12px;">Nenhum dado encontrado.</td></tr>`;
+        const cols = isYearOnly ? kpi.fields.length + 1 : kpi.fields.length + 2;
+        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;color:var(--gray-400);padding:20px;font-size:12px;">Nenhum dado encontrado.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = rows.map((r, i) => {
-        const label = isYearOnly ? String(r.ano) : ((r.mes || '') + ' ' + (r.ano || '')).trim();
         const bg = i % 2 ? 'var(--gray-50)' : 'white';
+        const periodCols = isYearOnly
+          ? `<td style="padding:6px 10px;font-size:12px;font-weight:600;">${r.ano}</td>`
+          : `<td style="padding:6px 10px;font-size:12px;font-weight:600;">${r.mes || ''}</td><td style="padding:6px 10px;font-size:12px;color:var(--text-muted);">${r.ano || ''}</td>`;
         const cells = kpi.fields.map(f => {
           const v = r[f.k];
           const display = v != null && !isNaN(v) ? Number(v).toLocaleString('pt-BR') : '—';
           return `<td style="padding:6px 10px;font-size:12px;text-align:right;">${display}</td>`;
         }).join('');
         return `<tr style="background:${bg};border-bottom:1px solid var(--gray-100);">
-          <td style="padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;">${label}</td>
-          ${cells}
+          ${periodCols}${cells}
         </tr>`;
       }).join('');
     }
