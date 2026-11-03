@@ -1,0 +1,231 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "defaultValue": "sysmanager-email-mensal",
+      "metadata": { "description": "Nome do Logic App" }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "office365ConnectionName": {
+      "type": "string",
+      "defaultValue": "office365",
+      "metadata": { "description": "Nome da connection do Office 365 / Outlook" }
+    }
+  },
+  "variables": {
+    "connectionId": "[resourceId('Microsoft.Web/connections', parameters('office365ConnectionName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('office365ConnectionName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "displayName": "Office 365 – SysManager",
+        "api": {
+          "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/office365')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections', parameters('office365ConnectionName'))]"
+      ],
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recorrencia_Dia1": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Month",
+                "interval": 1,
+                "schedule": {
+                  "monthDays": [1, 3, 5]
+                },
+                "timeZone": "E. South America Standard Time",
+                "startTime": "2024-01-01T08:00:00"
+              }
+            }
+          },
+          "actions": {
+            "Calcular_mes_anterior": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name": "mesAnterior",
+                    "type": "string",
+                    "value": "@{formatDateTime(addDays(startOfMonth(utcNow()), -1), 'MMMM/yyyy', 'pt-BR')}"
+                  }
+                ]
+              },
+              "runAfter": {}
+            },
+            "Email_DP": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "tatyane.santos@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | Departamento Pessoal",
+                  "Body": "<p>Olá, Tatyane!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>Departamento Pessoal</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_DHO": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "tamires.lourenco@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | DHO",
+                  "Body": "<p>Olá, Tamires!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>DHO</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_RS": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "caroline.daudt@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | R&S",
+                  "Body": "<p>Olá, Caroline!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>R&amp;S</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_TD": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "lucas.muratori@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | T&D",
+                  "Body": "<p>Olá, Lucas!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>T&amp;D</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_Suprimentos": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "daniel.cesar@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | Suprimentos",
+                  "Body": "<p>Olá, Daniel!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>Suprimentos</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_TI": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "wellysson.macena@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | TI",
+                  "Body": "<p>Olá, Wellysson!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>TI</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            },
+            "Email_GC": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['office365']['connectionId']" }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "paulo.felipe@sysmanager.com.br",
+                  "Subject": "📊 CAO Dashboard – Atualização pendente: @{variables('mesAnterior')} | GC",
+                  "Body": "<p>Olá, Paulo!</p><p>Este é um lembrete automático para atualização dos indicadores de <strong>GC</strong> referentes a <strong>@{variables('mesAnterior')}</strong> no CAO Dashboard.</p><p>Acesse: <a href=\"https://polite-stone-0f0145610.7.azurestaticapps.net/dash-cao/\">CAO Dashboard</a></p><p>Em caso de dúvidas, entre em contato com a equipe de TI.</p><br><p><em>Mensagem automática – SysManager</em></p>",
+                  "IsHtml": true,
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": { "Calcular_mes_anterior": ["Succeeded"] }
+            }
+          },
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "office365": {
+                "connectionId": "[variables('connectionId')]",
+                "connectionName": "[parameters('office365ConnectionName')]",
+                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/office365')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppName": {
+      "type": "string",
+      "value": "[parameters('logicAppName')]"
+    }
+  }
+}
