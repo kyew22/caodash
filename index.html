@@ -2607,11 +2607,18 @@
       // ignora registros com todos os campos de humor nulos
       const hDataValid = hDataRaw.filter(r => r.mf != null || r.f != null || r.n != null || r.t != null || r.mt != null);
       const lastH = hDataValid.length ? hDataValid[hDataValid.length - 1] : null;
+      const prevH = hDataValid.length >= 2 ? hDataValid[hDataValid.length - 2] : null;
       const n = v => (v != null && !isNaN(v) ? Number(v) : 0);
       const totalH = lastH ? n(lastH.mf) + n(lastH.f) + n(lastH.n) + n(lastH.t) + n(lastH.mt) : 0;
       const posP = lastH && totalH > 0 ? ((n(lastH.mf) + n(lastH.f)) / totalH * 100).toFixed(0) : 0;
+      const totalHPrev = prevH ? n(prevH.mf) + n(prevH.f) + n(prevH.n) + n(prevH.t) + n(prevH.mt) : 0;
+      const posPPrev = prevH && totalHPrev > 0 ? ((n(prevH.mf) + n(prevH.f)) / totalHPrev * 100) : null;
+      const posDelta = posPPrev != null ? (Number(posP) - posPPrev) : null;
+      const totalHDelta = totalHPrev && totalHPrev !== 0 ? ((totalH - totalHPrev) / Math.abs(totalHPrev) * 100) : null;
       const fbData = DATA.feedback.filter(r => (y === 'all' || r.ano == y) && r.v != null);
       const fbL = fbData.length ? fbData[fbData.length - 1].v : null;
+      const fbPrev = fbData.length >= 2 ? fbData[fbData.length - 2].v : null;
+      const fbDelta = fbPrev && fbPrev !== 0 ? ((fbL - fbPrev) / Math.abs(fbPrev) * 100) : null;
 
       // Desligamento por iniciativa — lê do KPI customizado "Iniciativa dos Desligamentos"
       const _iniciativaKpi = (DATA.custom_kpis || []).find(k => k.title === 'Iniciativa dos Desligamentos');
@@ -2631,9 +2638,9 @@
       document.getElementById('humor-subtitle').textContent = 'Distribuição mensal — ' + yLabel;
 
       document.getElementById('dho-kpis').innerHTML =
-        kpiCard('Muito Feliz + Feliz', posP, '%', null, 'green') +
-        kpiCard('Feedbacks (último)', fmtN(fbL), 'feedbacks', null, 'blue') +
-        kpiCard('Respostas Humor', fmtN(totalH), 'respostas', null, 'teal') +
+        kpiCard('Muito Feliz + Feliz', posP, '%', posDelta, 'green') +
+        kpiCard('Feedbacks (último)', fmtN(fbL), 'feedbacks', fbDelta, 'blue') +
+        kpiCard('Respostas Humor', fmtN(totalH), 'respostas', totalHDelta, 'teal') +
         kpiCard('Desl. por Empregado', dislEmpL != null ? fmtN(dislEmpL) : '—', '', dislEmpDelta, 'amber') +
         kpiCard('Desl. por Empresa', dislEmpresaL != null ? fmtN(dislEmpresaL) : '—', '', dislEmpresaDelta, 'pink');
 
