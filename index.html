@@ -1634,6 +1634,8 @@
           </div>
           <div class="chart-actions">
             <button class="btn-edit" onclick="openTINotebookModal()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;">+ Adicionar</button>
+            <button onclick="document.getElementById('nbExcelInput').click()" style="background:var(--teal,#0d9488);color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;margin-left:6px;">📥 Importar Excel</button>
+            <input type="file" id="nbExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="importTINotebooksExcel(this)">
           </div>
         </div>
         <div style="overflow-x:auto;">
@@ -5065,6 +5067,68 @@
       renderTINotebooksTabela();
       saveToServer(DATA);
       showToast('Notebook removido.', 'success');
+    }
+
+    function importTINotebooksExcel(input) {
+      if (!checkWritePermission()) { input.value = ''; return; }
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          if (!rows.length) { showToast('Planilha vazia.', 'error'); return; }
+
+          // mapeamento flexível de cabeçalhos (case-insensitive, sem acentos)
+          const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+          const MAP = {
+            nome:         ['nome', 'name', 'colaborador'],
+            email:        ['email', 'e-mail', 'mail'],
+            cliente:      ['cliente', 'client', 'empresa'],
+            dt_cessao:    ['data cessao', 'data da cessao', 'cessao', 'dt_cessao', 'data cessao notebook'],
+            dt_aquisicao: ['data aquisicao', 'data da aquisicao', 'aquisicao', 'dt_aquisicao', 'data aquisicao notebook']
+          };
+          const headers = Object.keys(rows[0]);
+          const colFor = field => headers.find(h => MAP[field].includes(norm(h))) || null;
+          const cols = { nome: colFor('nome'), email: colFor('email'), cliente: colFor('cliente'), dt_cessao: colFor('dt_cessao'), dt_aquisicao: colFor('dt_aquisicao') };
+
+          const fmtDate = v => {
+            if (!v) return '';
+            if (v instanceof Date) return v.toISOString().slice(0,10);
+            const s = String(v).trim();
+            // dd/mm/yyyy → yyyy-mm-dd
+            const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+            return s;
+          };
+
+          const imported = rows.map(r => ({
+            nome:         cols.nome         ? String(r[cols.nome]||'').trim()         : '',
+            email:        cols.email        ? String(r[cols.email]||'').trim()        : '',
+            cliente:      cols.cliente      ? String(r[cols.cliente]||'').trim()      : '',
+            dt_cessao:    cols.dt_cessao    ? fmtDate(r[cols.dt_cessao])              : '',
+            dt_aquisicao: cols.dt_aquisicao ? fmtDate(r[cols.dt_aquisicao])           : ''
+          })).filter(r => r.nome || r.email);
+
+          if (!imported.length) { showToast('Nenhuma linha válida encontrada.', 'error'); return; }
+
+          const mode = confirm(`${imported.length} linha(s) encontrada(s).\n\nOK = Adicionar às existentes\nCancelar = Substituir todos os registros`);
+          if (!DATA.ti_notebooks_tabela) DATA.ti_notebooks_tabela = [];
+          if (mode) DATA.ti_notebooks_tabela.push(...imported);
+          else DATA.ti_notebooks_tabela = imported;
+
+          renderTINotebooksTabela();
+          renderTI();
+          saveToServer(DATA);
+          showToast(`${imported.length} notebook(s) importado(s).`, 'success');
+        } catch(err) {
+          showToast('Erro ao ler planilha: ' + err.message, 'error');
+        }
+        input.value = '';
+      };
+      reader.readAsBinaryString(file);
     }
 
     // ── MIGRA ──
