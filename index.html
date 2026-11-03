@@ -2188,22 +2188,13 @@
       const [rotatPrev, rotatCurr] = lastTwo(DATA.rotat, 'v');
       const rotatDelta = calcDelta(rotatPrev, rotatCurr);
 
-      const [custosPrev, custosCurr] = lastTwo(DATA.fp, 'custo');
+      // Custos x Despesas: busca pelo KPI customizado "Custo x Despesas" (f_1=Custos, f_0=Despesas)
+      const _custoDesp = (DATA.custom_kpis || []).find(k => k.title === 'Custo x Despesas');
+      const _custoDespArr = _custoDesp ? (DATA[_custoDesp.id] || []) : [];
+      const [custosPrev, custosCurr] = lastTwo(_custoDespArr, 'f_1');
       const custosDelta = calcDelta(custosPrev, custosCurr);
-
-      // Despesas = soma de todos os CCs num mês
-      const _kpiCCs = ['CAO','SW','HW','R&S','DP','T&D','DHO','Contratos','Suprimentos'];
-      const _ccAll = (DATA.custo_cc || []).filter(r => _kpiCCs.some(cc => r[cc] != null));
-      const _ccByPeriod = {};
-      _ccAll.forEach(r => {
-        const k = r.ano + '-' + r.mes;
-        if (!_ccByPeriod[k]) _ccByPeriod[k] = { ano: r.ano, mes: r.mes, total: 0 };
-        _kpiCCs.forEach(cc => { if (r[cc] != null) _ccByPeriod[k].total += r[cc]; });
-      });
-      const _ccPeriods = Object.values(_ccByPeriod).sort((a, b) => a.ano !== b.ano ? a.ano - b.ano : a.mes?.localeCompare(b.mes));
-      const despPrev = _ccPeriods.length >= 2 ? _ccPeriods[_ccPeriods.length - 2].total : null;
-      const despCurr = _ccPeriods.length >= 1 ? _ccPeriods[_ccPeriods.length - 1].total : null;
-      const despDelta = calcDelta(despPrev, despCurr);
+      const [despPrevV, despCurrV] = lastTwo(_custoDespArr, 'f_0');
+      const despDelta = calcDelta(despPrevV, despCurrV);
 
       const [fpCaoPrev, fpCaoCurr] = lastTwo(DATA.fp_cao, 'custo');
       const fpCaoDelta = calcDelta(fpCaoPrev, fpCaoCurr);
@@ -2216,8 +2207,8 @@
         kpiCard('HE (último mês)', fmtN(heL), 'h', heDelta, 'pink') +
         kpiCard('FP Total', 'R$ ' + fmtN(fpL, 1), 'mi', fpDelta, 'violet') +
         kpiCard('Rotatividade', rotatCurr != null ? fmtN(rotatCurr) : '—', '', rotatDelta, 'pink') +
-        kpiCard('Custos', custosCurr != null ? 'R$ ' + fmtN(custosCurr, 1) : '—', 'mi', custosDelta, 'violet') +
-        kpiCard('Despesas', despCurr != null ? 'R$ ' + fmtN(despCurr / 1000, 1) : '—', 'mi', despDelta, 'amber') +
+        kpiCard('Custos', custosCurr != null ? 'R$ ' + fmtN(custosCurr / 1000000, 1) : '—', 'mi', custosDelta, 'violet') +
+        kpiCard('Despesas', despCurrV != null ? 'R$ ' + fmtN(despCurrV / 1000, 1) : '—', 'mil', despDelta, 'amber') +
         kpiCard('FP Dir. Corp.', fpCaoCurr != null ? 'R$ ' + fmtN(fpCaoCurr, 1) : '—', 'mi', fpCaoDelta, 'teal');
 
       // Contrat x Demit
